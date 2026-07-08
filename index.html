@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1F33">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>The Bench — Code Workbench</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0B1F33;
+    --bg-grid: #123153;
+    --card: #102A43;
+    --card-hi: #163A57;
+    --line: #1E4368;
+    --ink: #E8F1F8;
+    --ink-dim: #7FA8C9;
+    --teal: #5EEAD4;
+    --coral: #E8927C;
+    --amber: #F0C36D;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
+      var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  ::selection{ background: var(--teal); color: #06222A; }
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px; letter-spacing:.03em;
+    background: var(--card);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    cursor:pointer;
+    border-radius: 3px;
+  }
+  button:hover{ background: var(--card-hi); border-color: var(--teal); }
+  button.primary{ background: var(--teal); color:#06222A; border-color:var(--teal); font-weight:600; }
+  button.primary:hover{ filter: brightness(1.08); }
+  button.ghost{ background:transparent; }
+  button.danger:hover{ border-color: var(--coral); color: var(--coral); }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+
+  /* ---------- Lock screen ---------- */
+  #lock{
+    position:fixed; inset:0; z-index:100;
+    display:flex; align-items:center; justify-content:center;
+    background: var(--bg);
+    flex-direction:column; padding: 24px;
+  }
+  #lock .pin-card{
+    width: min(320px, 90vw);
+    background: var(--card); border:1px solid var(--line); border-radius:6px;
+    padding: 26px 22px; text-align:center;
+  }
+  #lock h1{ font-family:'IBM Plex Mono', monospace; font-size:16px; color:var(--teal); margin:0 0 6px; letter-spacing:.08em; text-transform:uppercase; }
+  #lock p{ font-size:12px; color:var(--ink-dim); margin: 0 0 18px; line-height:1.6; }
+  .pin-dots{ display:flex; gap:12px; justify-content:center; margin-bottom:18px; }
+  .pin-dot{ width:14px; height:14px; border-radius:50%; border:1px solid var(--line); background:transparent; }
+  .pin-dot.filled{ background: var(--teal); border-color:var(--teal); }
+  .pin-pad{ display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-bottom: 14px; }
+  .pin-pad button{ padding: 16px 0; font-size:16px; border-radius:6px; }
+  #biometricBtn{ width:100%; margin-top: 4px; }
+  #lockError{ color: var(--coral); font-size:11.5px; min-height:16px; margin-bottom:6px; }
+
+  /* ---------- App shell ---------- */
+  .app{ display:none; grid-template-columns: 300px 1fr; height:100vh; }
+  .app.show{ display:grid; }
+
+  .side{
+    border-right: 1px solid var(--line);
+    background: rgba(11,31,51,0.85);
+    display:flex; flex-direction:column;
+    min-width:0;
+  }
+  .brand{ padding: 18px 16px 14px; border-bottom: 1px dashed var(--line); display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .brand h1{ font-family:'IBM Plex Mono', monospace; font-size: 15px; letter-spacing:0.12em; text-transform:uppercase; margin:0 0 4px; color: var(--teal); }
+  .brand p{ margin:0; font-size:11.5px; color:var(--ink-dim); line-height:1.5; }
+  #lockNowBtn{ font-size:10px; padding:5px 8px; flex-shrink:0; }
+
+  .actions{ display:flex; gap:8px; padding: 12px 16px; border-bottom:1px solid var(--line); }
+  .filelist{ flex:1; overflow-y:auto; padding: 8px 10px 16px; }
+  .empty-note{ color:var(--ink-dim); font-size:12.5px; padding: 18px 10px; line-height:1.6; }
+
+  .file-card{
+    position:relative;
+    background: var(--card);
+    border:1px solid var(--line);
+    border-radius: 3px;
+    padding: 10px 12px 9px;
+    margin-bottom: 8px;
+    cursor:pointer;
+    transition: border-color .12s ease;
+  }
+  .file-card:hover{ border-color: var(--teal); }
+  .file-card.active{ border-color: var(--teal); background: var(--card-hi); }
+  .file-card::before{
+    content:''; position:absolute; top:0; left:12px; width:18px; height:6px;
+    background: var(--amber); opacity:.85;
+    clip-path: polygon(0 0,100% 0,85% 100%,15% 100%);
+  }
+  .fc-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-top:4px; }
+  .fc-name{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:600; word-break:break-word; }
+  .fc-tag{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.06em; padding: 2px 6px; border-radius:2px; white-space:nowrap; text-transform:uppercase; }
+  .fc-tag.html{ background: rgba(94,234,212,.15); color: var(--teal); border:1px solid rgba(94,234,212,.4); }
+  .fc-tag.jsx{ background: rgba(240,195,109,.15); color: var(--amber); border:1px solid rgba(240,195,109,.4); }
+  .fc-meta{ font-size:10.5px; color: var(--ink-dim); margin-top:6px; font-family:'IBM Plex Mono', monospace; }
+
+  .main{ display:flex; flex-direction:column; min-width:0; }
+  .toolbar{ display:flex; align-items:center; gap:10px; padding: 12px 18px; border-bottom:1px solid var(--line); background: rgba(11,31,51,0.6); flex-wrap:wrap; }
+  .toolbar .name{ font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; }
+  .toolbar .spacer{ flex:1; }
+  .tabs{ display:flex; gap:2px; padding: 0 18px; border-bottom:1px solid var(--line); background: rgba(16,42,67,.4); }
+  .tab{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:.04em; padding: 9px 14px; color: var(--ink-dim); cursor:pointer; border-bottom:2px solid transparent; }
+  .tab.active{ color: var(--teal); border-bottom-color: var(--teal); }
+
+  .pane{ flex:1; min-height:0; display:none; }
+  .pane.active{ display:flex; flex-direction:column; }
+
+  #previewFrame{ flex:1; border:none; background:#fff; }
+  .preview-wrap{ flex:1; display:flex; flex-direction:column; min-height:0; }
+
+  textarea#codeArea{
+    flex:1; width:100%; resize:none; border:none; outline:none;
+    background: #0A1826; color: #D6E8F5;
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; line-height:1.6;
+    padding: 16px 18px;
+  }
+
+  .welcome{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 40px; color: var(--ink-dim); }
+  .welcome h2{ color:var(--ink); font-family:'IBM Plex Mono', monospace; font-size:20px; margin-bottom:8px; }
+  .welcome p{ max-width: 420px; font-size:13px; line-height:1.7; }
+
+  .overlay{ position:fixed; inset:0; background: rgba(6,15,25,.7); display:none; align-items:center; justify-content:center; z-index:10; }
+  .overlay.show{ display:flex; }
+  .modal{ width: min(640px, 92vw); max-height: 86vh; overflow-y:auto; background: var(--card); border:1px solid var(--line); border-radius:5px; padding: 20px 22px 22px; }
+  .modal h3{ margin:0 0 14px; font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--teal); }
+  .field{ margin-bottom: 12px; }
+  .field label{ display:block; font-size:11px; color:var(--ink-dim); margin-bottom:5px; font-family:'IBM Plex Mono', monospace; letter-spacing:.03em; }
+  .field input[type=text], .field input[type=password], .field select{
+    width:100%; padding: 8px 10px; background:#0A1826; border:1px solid var(--line); color:var(--ink);
+    border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+  }
+  .field textarea{ width:100%; min-height: 220px; padding: 10px; background:#0A1826; border:1px solid var(--line); color:var(--ink); border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:12px; line-height:1.55; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
+  .hint{ font-size:11px; color: var(--ink-dim); margin-top:-6px; margin-bottom:12px; line-height:1.5; }
+  input[type=file]{ display:none; }
+
+  @media (max-width: 720px){
+    .app.show{ grid-template-columns: 1fr; }
+    .side{ display:none; }
+    .side.mobile-open{ display:flex; position:fixed; inset:0; z-index:20; }
+    .main.mobile-hidden{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lock">
+  <div class="pin-card">
+    <h1>The Bench</h1>
+    <p id="lockSubtitle">Set a passcode to protect your saved code.</p>
+    <div class="pin-dots" id="pinDots"></div>
+    <div id="lockError"></div>
+    <div class="pin-pad" id="pinPad"></div>
+    <button id="biometricBtn" style="display:none;">Use Face ID / Fingerprint</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <aside class="side" id="side">
+    <div class="brand">
+      <div>
+        <h1>The Bench</h1>
+        <p>Your saved HTML &amp; JSX files. Stored only on this device.</p>
+      </div>
+      <button id="lockNowBtn" class="ghost" title="Lock now">🔒</button>
+    </div>
+    <div class="actions">
+      <button class="primary" id="newBtn" style="flex:1">+ New file</button>
+      <button id="importBtn" title="Import files">Import</button>
+      <input type="file" id="importInput" multiple accept=".html,.htm,.jsx,.tsx,.js">
+    </div>
+    <div class="filelist" id="fileList"></div>
+  </aside>
+
+  <main class="main" id="mainPane">
+    <div id="welcome" class="welcome">
+      <h2>Nothing pinned yet</h2>
+      <p>Save an HTML or JSX file with "New file", or paste one in with "Import". Everything you add here stays on this device — select a card on the left to view, edit, run, or export it.</p>
+    </div>
+
+    <div id="workspace" style="display:none; flex:1; flex-direction:column; min-width:0;">
+      <div class="toolbar">
+        <button id="backBtn" class="ghost" style="display:none;">← Files</button>
+        <span class="fc-tag" id="typeTag"></span>
+        <span class="name" id="curName"></span>
+        <span class="spacer"></span>
+        <button id="renameBtn" class="ghost">Rename</button>
+        <button id="exportBtn">Export</button>
+        <button id="deleteBtn" class="danger">Delete</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-tab="preview">Preview</div>
+        <div class="tab" data-tab="code">Code</div>
+      </div>
+      <div class="pane active" id="pane-preview">
+        <div class="preview-wrap">
+          <iframe id="previewFrame" sandbox="allow-scripts allow-modals" srcdoc=""></iframe>
+        </div>
+      </div>
+      <div class="pane" id="pane-code">
+        <textarea id="codeArea" spellcheck="false"></textarea>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">New file</h3>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="mName" placeholder="e.g. pricing-table">
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <select id="mType">
+        <option value="html">HTML</option>
+        <option value="jsx">JSX (React component)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Code</label>
+      <textarea id="mCode" placeholder="Paste or write code here..."></textarea>
+    </div>
+    <div class="hint" id="mHint"></div>
+    <div class="modal-actions">
+      <button class="ghost" id="mCancel">Cancel</button>
+      <button class="primary" id="mSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== Service worker registration ===================== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+/* ===================== IndexedDB storage layer ===================== */
+const DB_NAME = 'bench-db';
+const STORE = 'files';
+const KV_STORE = 'kv';
+let db;
+
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 2);
+    req.onupgradeneeded = () => {
+      const d = req.result;
+      if(!d.objectStoreNames.contains(STORE)){
+        d.createObjectStore(STORE, { keyPath: 'id' });
+      }
+      if(!d.objectStoreNames.contains(KV_STORE)){
+        d.createObjectStore(KV_STORE, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* ---- kv helpers, back the window.storage shim used by previewed artifacts ---- */
+function kvGet(id){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(KV_STORE, 'readonly');
+    const req = tx.objectStore(KV_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+function kvSet(id, record){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(KV_STORE, 'readwrite');
+    tx.objectStore(KV_STORE).put({ id, ...record });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function kvDelete(id){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(KV_STORE, 'readwrite');
+    tx.objectStore(KV_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function kvListKeys(prefixTag, userPrefix){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(KV_STORE, 'readonly');
+    const req = tx.objectStore(KV_STORE).getAll();
+    req.onsuccess = () => {
+      const rows = req.result || [];
+      const keys = rows
+        .filter(r => r.id.startsWith(prefixTag))
+        .map(r => r.key)
+        .filter(k => !userPrefix || k.startsWith(userPrefix));
+      resolve(keys);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* Bridge: previewed HTML/JSX runs in a sandboxed iframe with no direct DB access.
+   It talks to window.storage (shimmed inside the iframe) via postMessage; this
+   listener performs the real IndexedDB work and posts the result back. */
+window.addEventListener('message', async (e) => {
+  const d = e.data;
+  if(!d || !d.__benchStorage || !e.source) return;
+  const { id, op, args } = d;
+  try{
+    const result = await handleStorageOp(op, args || {});
+    e.source.postMessage({ __benchStorageResponse: true, id, result }, '*');
+  }catch(err){
+    e.source.postMessage({ __benchStorageResponse: true, id, error: err.message || String(err) }, '*');
+  }
+});
+
+async function handleStorageOp(op, { key, value, shared, prefix }){
+  const tag = shared ? 'shared:' : 'priv:';
+  const storeId = tag + key;
+  if(op === 'get'){
+    const rec = await kvGet(storeId);
+    if(!rec) throw new Error('Key not found: ' + key);
+    return { key, value: rec.value, shared: !!shared };
+  }
+  if(op === 'set'){
+    await kvSet(storeId, { key, value, shared: !!shared });
+    return { key, value, shared: !!shared };
+  }
+  if(op === 'delete'){
+    const existed = await kvGet(storeId);
+    await kvDelete(storeId);
+    return { key, deleted: !!existed, shared: !!shared };
+  }
+  if(op === 'list'){
+    const keys = await kvListKeys(tag, prefix);
+    return { keys, prefix, shared: !!shared };
+  }
+  throw new Error('Unknown storage op: ' + op);
+}
+function dbGetAll(){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+function dbPut(file){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(file);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function dbDelete(id){
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ===================== Lock screen: PIN + WebAuthn ===================== */
+const lockEl = document.getElementById('lock');
+const pinDotsEl = document.getElementById('pinDots');
+const pinPadEl = document.getElementById('pinPad');
+const lockErrorEl = document.getElementById('lockError');
+const lockSubtitleEl = document.getElementById('lockSubtitle');
+const biometricBtn = document.getElementById('biometricBtn');
+
+const PIN_LEN = 4;
+let pinBuffer = '';
+let mode = null; // 'setup' | 'confirm' | 'unlock'
+let firstPinEntry = '';
+
+async function sha256(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function renderDots(){
+  pinDotsEl.innerHTML = '';
+  for(let i=0;i<PIN_LEN;i++){
+    const d = document.createElement('div');
+    d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+    pinDotsEl.appendChild(d);
+  }
+}
+function buildPad(){
+  pinPadEl.innerHTML = '';
+  const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  keys.forEach(k => {
+    const b = document.createElement('button');
+    b.textContent = k;
+    if(k === ''){ b.style.visibility = 'hidden'; }
+    b.onclick = () => handleKey(k);
+    pinPadEl.appendChild(b);
+  });
+}
+function handleKey(k){
+  lockErrorEl.textContent = '';
+  if(k === '⌫'){ pinBuffer = pinBuffer.slice(0,-1); renderDots(); return; }
+  if(k === '' || pinBuffer.length >= PIN_LEN) return;
+  pinBuffer += k;
+  renderDots();
+  if(pinBuffer.length === PIN_LEN) setTimeout(submitPin, 150);
+}
+
+async function submitPin(){
+  if(mode === 'setup'){
+    firstPinEntry = pinBuffer;
+    pinBuffer = '';
+    renderDots();
+    mode = 'confirm';
+    lockSubtitleEl.textContent = 'Enter it again to confirm.';
+    return;
+  }
+  if(mode === 'confirm'){
+    if(pinBuffer !== firstPinEntry){
+      lockErrorEl.textContent = "Passcodes didn't match — try again.";
+      pinBuffer = ''; firstPinEntry=''; renderDots();
+      mode = 'setup';
+      lockSubtitleEl.textContent = 'Set a passcode to protect your saved code.';
+      return;
+    }
+    const hash = await sha256(pinBuffer);
+    localStorage.setItem('bench-pin-hash', hash);
+    unlockApp();
+    return;
+  }
+  if(mode === 'unlock'){
+    const hash = await sha256(pinBuffer);
+    const stored = localStorage.getItem('bench-pin-hash');
+    if(hash === stored){
+      unlockApp();
+    } else {
+      lockErrorEl.textContent = 'Wrong passcode.';
+      pinBuffer = ''; renderDots();
+    }
+  }
+}
+
+function startLockFlow(){
+  buildPad();
+  const stored = localStorage.getItem('bench-pin-hash');
+  pinBuffer = '';
+  if(stored){
+    mode = 'unlock';
+    lockSubtitleEl.textContent = 'Enter your passcode.';
+    maybeShowBiometric();
+  } else {
+    mode = 'setup';
+    lockSubtitleEl.textContent = 'Set a 4-digit passcode to protect your saved code.';
+  }
+  renderDots();
+}
+
+function unlockApp(){
+  lockEl.style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  loadFiles();
+}
+
+document.getElementById('lockNowBtn').onclick = () => {
+  document.getElementById('app').classList.remove('show');
+  lockEl.style.display = 'flex';
+  mode = 'unlock';
+  pinBuffer = '';
+  lockSubtitleEl.textContent = 'Enter your passcode.';
+  lockErrorEl.textContent = '';
+  renderDots();
+  buildPad();
+  maybeShowBiometric();
+};
+
+/* Optional: WebAuthn (Face ID / fingerprint) as a faster unlock, layered on top of the PIN. */
+async function maybeShowBiometric(){
+  if(!window.PublicKeyCredential) return;
+  const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false);
+  if(!available) return;
+  biometricBtn.style.display = 'block';
+}
+biometricBtn.onclick = async () => {
+  try{
+    let credId = localStorage.getItem('bench-webauthn-id');
+    if(!credId){
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          rp: { name: 'The Bench' },
+          user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'bench-user', displayName: 'Bench User' },
+          pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
+          authenticatorSelection: { userVerification: 'required', authenticatorAttachment: 'platform' },
+          timeout: 60000
+        }
+      });
+      localStorage.setItem('bench-webauthn-id', cred.id);
+      unlockApp();
+      return;
+    }
+    await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        userVerification: 'required',
+        timeout: 60000
+      }
+    });
+    unlockApp();
+  }catch(e){
+    lockErrorEl.textContent = 'Biometric unlock failed — use your passcode.';
+  }
+};
+
+startLockFlow();
+
+/* ===================== File manager (same behavior, IndexedDB-backed) ===================== */
+let files = [];
+let activeId = null;
+
+const el = (id) => document.getElementById(id);
+const fileList = el('fileList');
+const overlay = el('overlay');
+
+const JSX_HINT = 'JSX files run through Babel + React in the preview. Define a component (e.g. "function App(){...}") and end with "export default App;" — imports of react/react-dom are stripped automatically.';
+const HTML_HINT = 'Full HTML documents run as-is in a sandboxed preview frame.';
+
+function uid(){ return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function loadFiles(){
+  db = await openDB();
+  files = await dbGetAll();
+  renderList();
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function timeAgo(ts){
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
+function renderList(){
+  fileList.innerHTML = '';
+  if(files.length === 0){
+    fileList.innerHTML = '<div class="empty-note">No files pinned. Create or import one to get started.</div>';
+    return;
+  }
+  const sorted = [...files].sort((a,b) => b.updatedAt - a.updatedAt);
+  sorted.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'file-card' + (f.id === activeId ? ' active' : '');
+    const lines = f.code.split('\n').length;
+    card.innerHTML = `
+      <div class="fc-top">
+        <div class="fc-name">${escapeHtml(f.name)}</div>
+        <div class="fc-tag ${f.type}">${f.type}</div>
+      </div>
+      <div class="fc-meta">${lines} lines · ${timeAgo(f.updatedAt)}</div>
+    `;
+    card.onclick = () => selectFile(f.id);
+    fileList.appendChild(card);
+  });
+}
+
+function isMobile(){ return window.innerWidth <= 720; }
+
+function selectFile(id){
+  activeId = id;
+  const f = files.find(x=>x.id===id);
+  if(!f) return;
+  el('welcome').style.display = 'none';
+  el('workspace').style.display = 'flex';
+  el('curName').textContent = f.name;
+  el('typeTag').textContent = f.type;
+  el('typeTag').className = 'fc-tag ' + f.type;
+  el('codeArea').value = f.code;
+  renderList();
+  runPreview(f);
+  switchTab('preview');
+  if(isMobile()){
+    el('side').classList.remove('mobile-open');
+    el('mainPane').classList.remove('mobile-hidden');
+    el('backBtn').style.display = 'inline-block';
+  }
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  el('pane-preview').classList.toggle('active', name==='preview');
+  el('pane-code').classList.toggle('active', name==='code');
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+
+el('backBtn').onclick = () => {
+  el('side').classList.add('mobile-open');
+  el('mainPane').classList.add('mobile-hidden');
+};
+
+/* Known library -> global mapping. Covers the libraries commonly used in
+   tracker/dashboard-style artifacts. Anything outside this list gets stripped
+   with a console warning rather than crashing the preview. */
+const LIB_GLOBALS = {
+  'react': 'React',
+  'lucide-react': 'LucideReact',
+  'recharts': 'Recharts',
+  'lodash': '_',
+  'papaparse': 'Papa',
+  'xlsx': 'XLSX',
+  'd3': 'd3',
+  'mathjs': 'math',
+  'tone': 'Tone',
+  'three': 'THREE',
+  'chart.js': 'Chart'
+};
+
+const LIB_SCRIPTS = `
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+<script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"><\/script>
+<script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"><\/script>
+`;
+
+/* Rewrites "import ... from 'module'" lines into destructuring against the
+   CDN globals above, since the preview has no bundler to resolve real
+   imports. Unknown modules are stripped (best effort, not a hard failure). */
+function transformImports(code){
+  const importRe = /^\s*import\s+([^;]+?)\s+from\s+['"]([^'"]+)['"];?\s*$/gm;
+  const unresolved = [];
+  const transformed = code.replace(importRe, (match, clause, mod) => {
+    const key = mod.toLowerCase();
+    const globalName = LIB_GLOBALS[key];
+    if(!globalName){ unresolved.push(mod); return `/* stripped: import from "${mod}" not available in preview */`; }
+    clause = clause.trim();
+    if(clause.startsWith('{')){
+      return `const ${clause} = ${globalName};`;
+    }
+    if(clause.startsWith('*')){
+      const m = clause.match(/\*\s+as\s+(\w+)/);
+      const ns = m ? m[1] : key.replace(/[^a-zA-Z0-9_]/g,'_');
+      return `const ${ns} = ${globalName};`;
+    }
+    const defName = clause.split(',')[0].trim();
+    return `const ${defName} = ${globalName};`;
+  });
+  return { transformed, unresolved };
+}
+
+/* window.storage shim: previewed artifacts call window.storage.get/set/delete/list
+   exactly like they would inside Claude.ai. Calls are relayed to the parent
+   page via postMessage, which does the real work against the Bench's own
+   IndexedDB, so storage-based trackers/journals work without modification. */
+const STORAGE_SHIM = `
+<script>
+window.storage = (function(){
+  let reqId = 0;
+  const pending = {};
+  window.addEventListener('message', (e) => {
+    const d = e.data;
+    if(d && d.__benchStorageResponse && pending[d.id]){
+      const p = pending[d.id];
+      delete pending[d.id];
+      if(d.error) p.reject(new Error(d.error));
+      else p.resolve(d.result);
+    }
+  });
+  function call(op, args){
+    return new Promise((resolve, reject) => {
+      const id = ++reqId;
+      pending[id] = { resolve, reject };
+      window.parent.postMessage({ __benchStorage: true, id, op, args }, '*');
+    });
+  }
+  return {
+    get: (key, shared) => call('get', { key, shared: !!shared }),
+    set: (key, value, shared) => call('set', { key, value, shared: !!shared }),
+    delete: (key, shared) => call('delete', { key, shared: !!shared }),
+    list: (prefix, shared) => call('list', { prefix, shared: !!shared })
+  };
+})();
+<\/script>
+`;
+
+function buildJsxDoc(code){
+  const { transformed, unresolved } = transformImports(code);
+  const cleaned = transformed.replace(/export\s+default\s+/, 'window.__WB_App = ');
+  const warn = unresolved.length
+    ? `console.warn('Bench preview: no CDN mapping for: ${unresolved.join(', ').replace(/'/g,"\\'")}. Those imports were stripped.');`
+    : '';
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+${LIB_SCRIPTS}
+${STORAGE_SHIM}
+<style>html,body{margin:0;padding:0;font-family:sans-serif;}#root{min-height:100vh;}</style>
+</head><body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useCallback, useReducer, useContext, createContext } = React;
+${warn}
+try {
+${cleaned}
+  const rootEl = document.getElementById('root');
+  const root = ReactDOM.createRoot(rootEl);
+  if (typeof window.__WB_App !== 'undefined') {
+    root.render(React.createElement(window.__WB_App));
+  } else {
+    rootEl.innerHTML = '<div style="padding:24px;font-family:monospace;color:#b00">No default export found. End your file with: export default ComponentName;</div>';
+  }
+} catch (err) {
+  document.getElementById('root').innerHTML = '<pre style="padding:24px;color:#b00;white-space:pre-wrap;font-family:monospace;">' + err.message + '</pre>';
+}
+<\/script>
+</body></html>`;
+}
+
+function runPreview(f){
+  const frame = el('previewFrame');
+  frame.srcdoc = f.type === 'html' ? (STORAGE_SHIM + f.code) : buildJsxDoc(f.code);
+}
+
+el('codeArea').addEventListener('change', async () => {
+  const f = files.find(x=>x.id===activeId);
+  if(!f) return;
+  f.code = el('codeArea').value;
+  f.updatedAt = Date.now();
+  await dbPut(f);
+  renderList();
+  runPreview(f);
+});
+
+el('renameBtn').onclick = async () => {
+  const f = files.find(x=>x.id===activeId);
+  if(!f) return;
+  const newName = prompt('Rename file', f.name);
+  if(newName && newName.trim()){
+    f.name = newName.trim();
+    f.updatedAt = Date.now();
+    await dbPut(f);
+    el('curName').textContent = f.name;
+    renderList();
+  }
+};
+
+el('deleteBtn').onclick = async () => {
+  const f = files.find(x=>x.id===activeId);
+  if(!f) return;
+  if(!confirm(`Delete "${f.name}"? This can't be undone.`)) return;
+  await dbDelete(f.id);
+  files = files.filter(x=>x.id!==activeId);
+  activeId = null;
+  renderList();
+  el('workspace').style.display = 'none';
+  el('welcome').style.display = 'flex';
+};
+
+el('exportBtn').onclick = () => {
+  const f = files.find(x=>x.id===activeId);
+  if(!f) return;
+  const ext = f.type === 'html' ? 'html' : 'jsx';
+  const blob = new Blob([f.code], {type: 'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = f.name.endsWith('.'+ext) ? f.name : `${f.name}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
+el('newBtn').onclick = () => openModal();
+el('mCancel').onclick = closeModal;
+el('mType').onchange = () => {
+  el('mHint').textContent = el('mType').value === 'jsx' ? JSX_HINT : HTML_HINT;
+};
+
+function openModal(){
+  el('modalTitle').textContent = 'New file';
+  el('mName').value = '';
+  el('mType').value = 'html';
+  el('mCode').value = '';
+  el('mHint').textContent = HTML_HINT;
+  overlay.classList.add('show');
+  el('mName').focus();
+}
+function closeModal(){ overlay.classList.remove('show'); }
+overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
+
+el('mSave').onclick = async () => {
+  const name = el('mName').value.trim();
+  const type = el('mType').value;
+  const code = el('mCode').value;
+  if(!name){ el('mName').focus(); return; }
+  if(!code.trim()){ el('mCode').focus(); return; }
+  const now = Date.now();
+  const newFile = { id: uid(), name, type, code, createdAt: now, updatedAt: now };
+  files.push(newFile);
+  await dbPut(newFile);
+  renderList();
+  closeModal();
+  selectFile(newFile.id);
+};
+
+el('importBtn').onclick = () => el('importInput').click();
+el('importInput').onchange = async (e) => {
+  const fileObjs = Array.from(e.target.files || []);
+  for(const fo of fileObjs){
+    const text = await fo.text();
+    const ext = fo.name.split('.').pop().toLowerCase();
+    const type = (ext === 'jsx' || ext === 'tsx' || ext === 'js') ? 'jsx' : 'html';
+    const name = fo.name.replace(/\.(html|htm|jsx|tsx|js)$/i, '');
+    const now = Date.now();
+    const newFile = { id: uid(), name, type, code: text, createdAt: now, updatedAt: now };
+    files.push(newFile);
+    await dbPut(newFile);
+  }
+  renderList();
+  e.target.value = '';
+};
+
+if(isMobile()){
+  el('side').classList.add('mobile-open');
+}
+</script>
+</body>
+</html>
