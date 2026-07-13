@@ -166,6 +166,15 @@
     .main.mobile-hidden{ display:none; }
   }
 
+  /* ---------- Manual sidebar collapse ---------- */
+  .app.sidebar-hidden{ grid-template-columns: 1fr; }
+  .app.sidebar-hidden .side{ display:none; }
+  #showSidebarBtn{
+    position:fixed; top: max(12px, env(safe-area-inset-top)); left:12px; z-index:50;
+    background: rgba(16,42,67,.92); border-color: var(--teal); color: var(--teal);
+    padding: 8px 12px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+
   /* ---------- Full-screen preview ---------- */
   #exitFullscreenBtn{
     position:fixed; top: max(12px, env(safe-area-inset-top)); right:12px; z-index:50;
@@ -205,6 +214,7 @@
         <p>Your saved HTML &amp; JSX files. Stored only on this device.</p>
       </div>
       <button id="lockNowBtn" class="ghost" title="Lock now">🔒</button>
+      <button id="hideSidebarBtn" class="ghost" title="Hide sidebar">⟨ Hide</button>
     </div>
     <div class="actions">
       <button class="primary" id="newBtn" style="flex:1">+ New file</button>
@@ -248,6 +258,7 @@
 </div>
 
 <button id="exitFullscreenBtn" style="display:none;">✕ Exit full screen</button>
+<button id="showSidebarBtn" style="display:none;">☰ Files</button>
 
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -645,32 +656,32 @@ function switchTab(name){
 }
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => switchTab(t.dataset.tab));
 
-/* Full screen: expands the preview to the whole viewport (sidebar/toolbar
-   hidden) so the file fills the screen the way it would opened directly in
-   a browser tab. Uses the real Fullscreen API where available (fills the
-   status bar area too); falls back to a CSS-only full-viewport view on
-   browsers that don't support it, like iOS Safari. */
+/* Full screen: expands the preview to fill the app's own window (sidebar
+   and toolbar hidden). Stays fully contained inside the app — no OS-level
+   Fullscreen API, since that can kick an installed PWA out to the browser
+   chrome on some phones. */
 function enterFullscreen(){
   document.body.classList.add('fullscreen-active');
   el('exitFullscreenBtn').style.display = 'block';
   switchTab('preview');
-  const container = document.documentElement;
-  if(container.requestFullscreen){
-    container.requestFullscreen().catch(()=>{});
-  }
 }
 function exitFullscreen(){
   document.body.classList.remove('fullscreen-active');
   el('exitFullscreenBtn').style.display = 'none';
-  if(document.fullscreenElement && document.exitFullscreen){
-    document.exitFullscreen().catch(()=>{});
-  }
 }
 el('fullscreenBtn').onclick = enterFullscreen;
 el('exitFullscreenBtn').onclick = exitFullscreen;
-document.addEventListener('fullscreenchange', () => {
-  if(!document.fullscreenElement) exitFullscreen();
-});
+
+/* Manual sidebar hide/show — independent of full screen, and independent of
+   the mobile file-list overlay. Preference is remembered between visits. */
+function setSidebarHidden(hidden){
+  el('app').classList.toggle('sidebar-hidden', hidden);
+  el('showSidebarBtn').style.display = hidden ? 'block' : 'none';
+  localStorage.setItem('bench-sidebar-hidden', hidden ? '1' : '0');
+}
+el('hideSidebarBtn').onclick = () => setSidebarHidden(true);
+el('showSidebarBtn').onclick = () => setSidebarHidden(false);
+setSidebarHidden(localStorage.getItem('bench-sidebar-hidden') === '1');
 
 el('backBtn').onclick = () => {
   el('side').classList.add('mobile-open');
