@@ -165,6 +165,21 @@
     .side.mobile-open{ display:flex; position:fixed; inset:0; z-index:20; }
     .main.mobile-hidden{ display:none; }
   }
+
+  /* ---------- Full-screen preview ---------- */
+  #exitFullscreenBtn{
+    position:fixed; top: max(12px, env(safe-area-inset-top)); right:12px; z-index:50;
+    background: rgba(16,42,67,.92); border-color: var(--teal); color: var(--teal);
+    padding: 8px 12px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  }
+  body.fullscreen-active .side,
+  body.fullscreen-active .toolbar,
+  body.fullscreen-active .tabs{ display:none !important; }
+  body.fullscreen-active .app.show{ grid-template-columns: 1fr; }
+  body.fullscreen-active .main{ width:100%; }
+  body.fullscreen-active .pane.active{ display:flex; }
+  body.fullscreen-active .preview-wrap{ height:100vh; height:100dvh; }
+  body.fullscreen-active #previewFrame{ width:100%; height:100%; }
 </style>
 </head>
 <body>
@@ -212,6 +227,7 @@
         <span class="name" id="curName"></span>
         <span class="spacer"></span>
         <button id="renameBtn" class="ghost">Rename</button>
+        <button id="fullscreenBtn" title="Open full screen">⛶ Full screen</button>
         <button id="exportBtn">Export</button>
         <button id="deleteBtn" class="danger">Delete</button>
       </div>
@@ -230,6 +246,8 @@
     </div>
   </main>
 </div>
+
+<button id="exitFullscreenBtn" style="display:none;">✕ Exit full screen</button>
 
 <div class="overlay" id="overlay">
   <div class="modal">
@@ -626,6 +644,33 @@ function switchTab(name){
   el('pane-code').classList.toggle('active', name==='code');
 }
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+
+/* Full screen: expands the preview to the whole viewport (sidebar/toolbar
+   hidden) so the file fills the screen the way it would opened directly in
+   a browser tab. Uses the real Fullscreen API where available (fills the
+   status bar area too); falls back to a CSS-only full-viewport view on
+   browsers that don't support it, like iOS Safari. */
+function enterFullscreen(){
+  document.body.classList.add('fullscreen-active');
+  el('exitFullscreenBtn').style.display = 'block';
+  switchTab('preview');
+  const container = document.documentElement;
+  if(container.requestFullscreen){
+    container.requestFullscreen().catch(()=>{});
+  }
+}
+function exitFullscreen(){
+  document.body.classList.remove('fullscreen-active');
+  el('exitFullscreenBtn').style.display = 'none';
+  if(document.fullscreenElement && document.exitFullscreen){
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+el('fullscreenBtn').onclick = enterFullscreen;
+el('exitFullscreenBtn').onclick = exitFullscreen;
+document.addEventListener('fullscreenchange', () => {
+  if(!document.fullscreenElement) exitFullscreen();
+});
 
 el('backBtn').onclick = () => {
   el('side').classList.add('mobile-open');
