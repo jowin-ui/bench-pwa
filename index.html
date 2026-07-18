@@ -24,8 +24,8 @@
     --coral: #E8927C;
     --amber: #F0C36D;
   }
-  *{ box-sizing: border-box; }
-  html,body{ height:100%; margin:0; }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ height:100%; margin:0; overscroll-behavior:none; }
   body{
     background:
       linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
@@ -34,7 +34,6 @@
     color: var(--ink);
     font-family: 'IBM Plex Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
-    overscroll-behavior: none;
   }
   ::selection{ background: var(--teal); color: #06222A; }
   button{
@@ -50,7 +49,7 @@
   button:hover{ background: var(--card-hi); border-color: var(--teal); }
   button.primary{ background: var(--teal); color:#06222A; border-color:var(--teal); font-weight:600; }
   button.primary:hover{ filter: brightness(1.08); }
-  button.ghost{ background:transparent; }
+  button.ghost{ background:transparent; border-color:transparent; }
   button.danger:hover{ border-color: var(--coral); color: var(--coral); }
   button:disabled{ opacity:.4; cursor:not-allowed; }
 
@@ -77,62 +76,93 @@
   #lockError{ color: var(--coral); font-size:11.5px; min-height:16px; margin-bottom:6px; }
 
   /* ---------- App shell ---------- */
-  .app{ display:none; grid-template-columns: 300px 1fr; height:100vh; }
-  .app.show{ display:grid; }
+  .app{ display:none; flex-direction:column; height:100vh; height:100dvh; }
+  .app.show{ display:flex; }
 
-  .side{
-    border-right: 1px solid var(--line);
+  #topbar{
+    display:flex; align-items:center; gap:10px;
+    padding: max(12px, env(safe-area-inset-top)) 16px 10px;
+    border-bottom: 1px solid var(--line);
     background: rgba(11,31,51,0.85);
-    display:flex; flex-direction:column;
-    min-width:0;
   }
-  .brand{ padding: 18px 16px 14px; border-bottom: 1px dashed var(--line); display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
-  .brand h1{ font-family:'IBM Plex Mono', monospace; font-size: 15px; letter-spacing:0.12em; text-transform:uppercase; margin:0 0 4px; color: var(--teal); }
-  .brand p{ margin:0; font-size:11.5px; color:var(--ink-dim); line-height:1.5; }
-  #lockNowBtn{ font-size:10px; padding:5px 8px; flex-shrink:0; }
+  #topbar .word{ font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:14px; letter-spacing:.08em; text-transform:uppercase; color: var(--teal); }
+  #topbar .spacer{ flex:1; }
 
-  .actions{ display:flex; gap:8px; padding: 12px 16px; border-bottom:1px solid var(--line); }
-  .filelist{ flex:1; overflow-y:auto; padding: 8px 10px 16px; }
-  .empty-note{ color:var(--ink-dim); font-size:12.5px; padding: 18px 10px; line-height:1.6; }
+  /* ---------- Carousel ---------- */
+  .carousel{
+    flex:1; display:flex; gap:14px; overflow-x:auto; overflow-y:hidden;
+    scroll-snap-type: x mandatory; -webkit-overflow-scrolling:touch;
+    padding: 14px 5%; scroll-padding: 0 5%;
+    min-height:0;
+  }
+  .carousel::-webkit-scrollbar{ display:none; }
+  .tab-card{
+    flex: 0 0 90%; scroll-snap-align:center;
+    background: var(--card); border:1px solid var(--line); border-radius:16px;
+    display:flex; flex-direction:column; overflow:hidden;
+    box-shadow: 0 10px 28px rgba(3,10,20,.5);
+    min-height:0;
+  }
+  .label-bar{
+    display:flex; align-items:center; gap:8px;
+    padding: 9px 10px; border-bottom:1px solid var(--line);
+    background: rgba(16,42,67,.9);
+  }
+  .label-bar .fname{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .icon-btn{ padding: 5px 8px; font-size:13px; line-height:1; }
+  .tab-card iframe{ flex:1; border:none; background:#fff; min-height:0; }
 
-  .file-card{
-    position:relative;
-    background: var(--card);
-    border:1px solid var(--line);
-    border-radius: 3px;
-    padding: 10px 12px 9px;
-    margin-bottom: 8px;
-    cursor:pointer;
-    transition: border-color .12s ease;
-  }
-  .file-card:hover{ border-color: var(--teal); }
-  .file-card.active{ border-color: var(--teal); background: var(--card-hi); }
-  .file-card::before{
-    content:''; position:absolute; top:0; left:12px; width:18px; height:6px;
-    background: var(--amber); opacity:.85;
-    clip-path: polygon(0 0,100% 0,85% 100%,15% 100%);
-  }
-  .fc-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-top:4px; }
-  .fc-name{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:600; word-break:break-word; }
-  .fc-tag{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.06em; padding: 2px 6px; border-radius:2px; white-space:nowrap; text-transform:uppercase; }
+  .fc-tag{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.06em; padding: 2px 6px; border-radius:2px; white-space:nowrap; text-transform:uppercase; flex-shrink:0; }
   .fc-tag.html{ background: rgba(94,234,212,.15); color: var(--teal); border:1px solid rgba(94,234,212,.4); }
   .fc-tag.jsx{ background: rgba(240,195,109,.15); color: var(--amber); border:1px solid rgba(240,195,109,.4); }
-  .fc-meta{ font-size:10.5px; color: var(--ink-dim); margin-top:6px; font-family:'IBM Plex Mono', monospace; }
 
-  .main{ display:flex; flex-direction:column; min-width:0; }
-  .toolbar{ display:flex; align-items:center; gap:10px; padding: 12px 18px; border-bottom:1px solid var(--line); background: rgba(11,31,51,0.6); flex-wrap:wrap; }
-  .toolbar .name{ font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600; }
-  .toolbar .spacer{ flex:1; }
-  .tabs{ display:flex; gap:2px; padding: 0 18px; border-bottom:1px solid var(--line); background: rgba(16,42,67,.4); }
-  .tab{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; letter-spacing:.04em; padding: 9px 14px; color: var(--ink-dim); cursor:pointer; border-bottom:2px solid transparent; }
-  .tab.active{ color: var(--teal); border-bottom-color: var(--teal); }
+  .empty-carousel{
+    flex:1; display:flex; align-items:center; justify-content:center; text-align:center;
+    color: var(--ink-dim); font-size:13px; line-height:1.7; padding: 40px;
+  }
 
-  .pane{ flex:1; min-height:0; display:none; }
-  .pane.active{ display:flex; flex-direction:column; }
+  /* ---------- Dots ---------- */
+  #dots{ display:flex; justify-content:center; align-items:center; gap:7px; padding: 4px 0 max(14px, env(safe-area-inset-bottom)); }
+  .dot{ width:7px; height:7px; border-radius:50%; background: var(--line); transition: all .15s ease; }
+  .dot.active{ background: var(--teal); width:20px; border-radius:5px; }
 
-  #previewFrame{ flex:1; border:none; background:#fff; }
-  .preview-wrap{ flex:1; display:flex; flex-direction:column; min-height:0; }
+  /* ---------- FAB ---------- */
+  #addTabBtn{
+    position:fixed; right:18px; bottom: max(70px, calc(env(safe-area-inset-bottom) + 58px));
+    width:52px; height:52px; border-radius:50%;
+    font-size:24px; font-weight:600; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 6px 18px rgba(0,0,0,.4); z-index:40;
+  }
 
+  /* ---------- Library bottom sheet ---------- */
+  .sheet-overlay{
+    position:fixed; inset:0; background: rgba(6,15,25,.7);
+    display:none; align-items:flex-end; justify-content:center; z-index:60;
+  }
+  .sheet-overlay.show{ display:flex; }
+  .sheet{
+    width:100%; max-width:640px; max-height:80vh; overflow-y:auto;
+    background: var(--card); border:1px solid var(--line); border-bottom:none;
+    border-radius: 16px 16px 0 0; padding: 6px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+  .sheet-handle{ width:36px; height:4px; background:var(--line); border-radius:3px; margin: 10px auto 14px; }
+  .sheet-top{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .sheet-top h3{ margin:0; font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--teal); flex:1; }
+  .lib-row{ display:flex; align-items:center; gap:10px; padding: 11px 4px; border-bottom:1px dashed var(--line); }
+  .lib-row:last-child{ border-bottom:none; }
+  .lib-info{ flex:1; min-width:0; }
+  .lib-name{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:12.5px; word-break:break-word; }
+  .lib-meta{ font-size:10.5px; color:var(--ink-dim); margin-top:5px; display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; }
+  .lib-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .empty-note{ color:var(--ink-dim); font-size:12.5px; padding: 18px 4px; line-height:1.6; }
+
+  /* ---------- Code editor overlay ---------- */
+  .code-overlay{ position:fixed; inset:0; background: var(--bg); z-index:80; display:none; flex-direction:column; }
+  .code-overlay.show{ display:flex; }
+  .code-header{ display:flex; align-items:center; gap:10px; padding: max(12px, env(safe-area-inset-top)) 16px 10px; border-bottom:1px solid var(--line); flex-wrap:wrap; background: rgba(11,31,51,0.85); }
+  .code-header .name{ font-family:'IBM Plex Mono', monospace; font-size:13.5px; font-weight:600; }
+  .code-header .spacer{ flex:1; }
   textarea#codeArea{
     flex:1; width:100%; resize:none; border:none; outline:none;
     background: #0A1826; color: #D6E8F5;
@@ -140,55 +170,34 @@
     padding: 16px 18px;
   }
 
-  .welcome{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 40px; color: var(--ink-dim); }
-  .welcome h2{ color:var(--ink); font-family:'IBM Plex Mono', monospace; font-size:20px; margin-bottom:8px; }
-  .welcome p{ max-width: 420px; font-size:13px; line-height:1.7; }
-
-  .overlay{ position:fixed; inset:0; background: rgba(6,15,25,.7); display:none; align-items:center; justify-content:center; z-index:10; }
+  /* ---------- New-file modal ---------- */
+  .overlay{ position:fixed; inset:0; background: rgba(6,15,25,.7); display:none; align-items:center; justify-content:center; z-index:90; }
   .overlay.show{ display:flex; }
-  .modal{ width: min(640px, 92vw); max-height: 86vh; overflow-y:auto; background: var(--card); border:1px solid var(--line); border-radius:5px; padding: 20px 22px 22px; }
+  .modal{ width: min(560px, 92vw); max-height: 86vh; overflow-y:auto; background: var(--card); border:1px solid var(--line); border-radius:10px; padding: 20px 22px 22px; }
   .modal h3{ margin:0 0 14px; font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--teal); }
   .field{ margin-bottom: 12px; }
   .field label{ display:block; font-size:11px; color:var(--ink-dim); margin-bottom:5px; font-family:'IBM Plex Mono', monospace; letter-spacing:.03em; }
-  .field input[type=text], .field input[type=password], .field select{
+  .field input[type=text], .field select{
     width:100%; padding: 8px 10px; background:#0A1826; border:1px solid var(--line); color:var(--ink);
     border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
   }
-  .field textarea{ width:100%; min-height: 220px; padding: 10px; background:#0A1826; border:1px solid var(--line); color:var(--ink); border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:12px; line-height:1.55; }
+  .field textarea{ width:100%; min-height: 200px; padding: 10px; background:#0A1826; border:1px solid var(--line); color:var(--ink); border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:12px; line-height:1.55; }
   .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
   .hint{ font-size:11px; color: var(--ink-dim); margin-top:-6px; margin-bottom:12px; line-height:1.5; }
   input[type=file]{ display:none; }
 
-  @media (max-width: 720px){
-    .app.show{ grid-template-columns: 1fr; }
-    .side{ display:none; }
-    .side.mobile-open{ display:flex; position:fixed; inset:0; z-index:20; }
-    .main.mobile-hidden{ display:none; }
-  }
-
-  /* ---------- Manual sidebar collapse ---------- */
-  .app.sidebar-hidden{ grid-template-columns: 1fr; }
-  .app.sidebar-hidden .side{ display:none; }
-  #showSidebarBtn{
-    position:fixed; top: max(12px, env(safe-area-inset-top)); left:12px; z-index:50;
-    background: rgba(16,42,67,.92); border-color: var(--teal); color: var(--teal);
-    padding: 8px 12px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
-  }
-
-  /* ---------- Full-screen preview ---------- */
+  /* ---------- Full screen: hides chrome, cards go edge-to-edge but stay swipeable ---------- */
   #exitFullscreenBtn{
-    position:fixed; top: max(12px, env(safe-area-inset-top)); right:12px; z-index:50;
+    position:fixed; top: max(12px, env(safe-area-inset-top)); right:12px; z-index:50; display:none;
     background: rgba(16,42,67,.92); border-color: var(--teal); color: var(--teal);
     padding: 8px 12px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
   }
-  body.fullscreen-active .side,
-  body.fullscreen-active .toolbar,
-  body.fullscreen-active .tabs{ display:none !important; }
-  body.fullscreen-active .app.show{ grid-template-columns: 1fr; }
-  body.fullscreen-active .main{ width:100%; }
-  body.fullscreen-active .pane.active{ display:flex; }
-  body.fullscreen-active .preview-wrap{ height:100vh; height:100dvh; }
-  body.fullscreen-active #previewFrame{ width:100%; height:100%; }
+  body.fullscreen-active #topbar,
+  body.fullscreen-active #dots,
+  body.fullscreen-active #addTabBtn,
+  body.fullscreen-active .label-bar{ display:none !important; }
+  body.fullscreen-active .carousel{ padding:0; gap:0; }
+  body.fullscreen-active .tab-card{ flex-basis:100%; border-radius:0; border:none; }
 </style>
 </head>
 <body>
@@ -207,59 +216,50 @@
 
 <!-- APP -->
 <div class="app" id="app">
-  <aside class="side" id="side">
-    <div class="brand">
-      <div>
-        <h1>The Bench</h1>
-        <p>Your saved HTML &amp; JSX files. Stored only on this device.</p>
-      </div>
-      <button id="lockNowBtn" class="ghost" title="Lock now">🔒</button>
-      <button id="hideSidebarBtn" class="ghost" title="Hide sidebar">⟨ Hide</button>
-    </div>
-    <div class="actions">
-      <button class="primary" id="newBtn" style="flex:1">+ New file</button>
-      <button id="importBtn" title="Import files">Import</button>
-      <input type="file" id="importInput" multiple accept=".html,.htm,.jsx,.tsx,.js">
-    </div>
-    <div class="filelist" id="fileList"></div>
-  </aside>
+  <div id="topbar">
+    <span class="word">The Bench</span>
+    <span class="spacer"></span>
+    <button id="libraryBtn" class="ghost" title="All files">📂 Library</button>
+    <button id="lockNowBtn" class="ghost" title="Lock now">🔒</button>
+  </div>
 
-  <main class="main" id="mainPane">
-    <div id="welcome" class="welcome">
-      <h2>Nothing pinned yet</h2>
-      <p>Save an HTML or JSX file with "New file", or paste one in with "Import". Everything you add here stays on this device — select a card on the left to view, edit, run, or export it.</p>
-    </div>
+  <div class="carousel" id="carousel"></div>
+  <div id="dots"></div>
 
-    <div id="workspace" style="display:none; flex:1; flex-direction:column; min-width:0;">
-      <div class="toolbar">
-        <button id="backBtn" class="ghost" style="display:none;">← Files</button>
-        <span class="fc-tag" id="typeTag"></span>
-        <span class="name" id="curName"></span>
-        <span class="spacer"></span>
-        <button id="renameBtn" class="ghost">Rename</button>
-        <button id="fullscreenBtn" title="Open full screen">⛶ Full screen</button>
-        <button id="exportBtn">Export</button>
-        <button id="deleteBtn" class="danger">Delete</button>
-      </div>
-      <div class="tabs">
-        <div class="tab active" data-tab="preview">Preview</div>
-        <div class="tab" data-tab="code">Code</div>
-      </div>
-      <div class="pane active" id="pane-preview">
-        <div class="preview-wrap">
-          <iframe id="previewFrame" sandbox="allow-scripts allow-modals" srcdoc=""></iframe>
-        </div>
-      </div>
-      <div class="pane" id="pane-code">
-        <textarea id="codeArea" spellcheck="false"></textarea>
-      </div>
-    </div>
-  </main>
+  <button id="addTabBtn" class="primary" title="Open a file">+</button>
 </div>
 
-<button id="exitFullscreenBtn" style="display:none;">✕ Exit full screen</button>
-<button id="showSidebarBtn" style="display:none;">☰ Files</button>
+<button id="exitFullscreenBtn">✕ Exit full screen</button>
 
+<!-- LIBRARY BOTTOM SHEET -->
+<div class="sheet-overlay" id="librarySheetOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-top">
+      <h3>Your files</h3>
+      <button id="newFromSheetBtn" class="primary">+ New</button>
+      <button id="importFromSheetBtn">Import</button>
+      <input type="file" id="importInput" multiple accept=".html,.htm,.jsx,.tsx,.js">
+    </div>
+    <div id="libraryList"></div>
+  </div>
+</div>
+
+<!-- CODE EDITOR OVERLAY -->
+<div class="code-overlay" id="codeOverlay">
+  <div class="code-header">
+    <button id="codeBackBtn" class="ghost">← Back</button>
+    <span class="fc-tag" id="codeTag"></span>
+    <span class="name" id="codeFname"></span>
+    <span class="spacer"></span>
+    <button id="codeRenameBtn" class="ghost">Rename</button>
+    <button id="codeExportBtn">Export</button>
+    <button id="codeDeleteBtn" class="danger">Delete</button>
+  </div>
+  <textarea id="codeArea" spellcheck="false"></textarea>
+</div>
+
+<!-- NEW FILE MODAL -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <h3 id="modalTitle">New file</h3>
@@ -281,7 +281,7 @@
     <div class="hint" id="mHint"></div>
     <div class="modal-actions">
       <button class="ghost" id="mCancel">Cancel</button>
-      <button class="primary" id="mSave">Save</button>
+      <button class="primary" id="mSave">Save &amp; open</button>
     </div>
   </div>
 </div>
@@ -439,7 +439,7 @@ async function sha256(text){
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-function renderDots(){
+function renderDots_pin(){
   pinDotsEl.innerHTML = '';
   for(let i=0;i<PIN_LEN;i++){
     const d = document.createElement('div');
@@ -460,10 +460,10 @@ function buildPad(){
 }
 function handleKey(k){
   lockErrorEl.textContent = '';
-  if(k === '⌫'){ pinBuffer = pinBuffer.slice(0,-1); renderDots(); return; }
+  if(k === '⌫'){ pinBuffer = pinBuffer.slice(0,-1); renderDots_pin(); return; }
   if(k === '' || pinBuffer.length >= PIN_LEN) return;
   pinBuffer += k;
-  renderDots();
+  renderDots_pin();
   if(pinBuffer.length === PIN_LEN) setTimeout(submitPin, 150);
 }
 
@@ -471,7 +471,7 @@ async function submitPin(){
   if(mode === 'setup'){
     firstPinEntry = pinBuffer;
     pinBuffer = '';
-    renderDots();
+    renderDots_pin();
     mode = 'confirm';
     lockSubtitleEl.textContent = 'Enter it again to confirm.';
     return;
@@ -479,7 +479,7 @@ async function submitPin(){
   if(mode === 'confirm'){
     if(pinBuffer !== firstPinEntry){
       lockErrorEl.textContent = "Passcodes didn't match — try again.";
-      pinBuffer = ''; firstPinEntry=''; renderDots();
+      pinBuffer = ''; firstPinEntry=''; renderDots_pin();
       mode = 'setup';
       lockSubtitleEl.textContent = 'Set a passcode to protect your saved code.';
       return;
@@ -496,7 +496,7 @@ async function submitPin(){
       unlockApp();
     } else {
       lockErrorEl.textContent = 'Wrong passcode.';
-      pinBuffer = ''; renderDots();
+      pinBuffer = ''; renderDots_pin();
     }
   }
 }
@@ -513,7 +513,7 @@ function startLockFlow(){
     mode = 'setup';
     lockSubtitleEl.textContent = 'Set a 4-digit passcode to protect your saved code.';
   }
-  renderDots();
+  renderDots_pin();
 }
 
 function unlockApp(){
@@ -529,7 +529,7 @@ document.getElementById('lockNowBtn').onclick = () => {
   pinBuffer = '';
   lockSubtitleEl.textContent = 'Enter your passcode.';
   lockErrorEl.textContent = '';
-  renderDots();
+  renderDots_pin();
   buildPad();
   maybeShowBiometric();
 };
@@ -574,123 +574,11 @@ biometricBtn.onclick = async () => {
 
 startLockFlow();
 
-/* ===================== File manager (same behavior, IndexedDB-backed) ===================== */
-let files = [];
-let activeId = null;
-
+/* ===================== Library / CDN globals / JSX preview ===================== */
 const el = (id) => document.getElementById(id);
-const fileList = el('fileList');
-const overlay = el('overlay');
-
 const JSX_HINT = 'JSX files run through Babel + React in the preview. Define a component (e.g. "function App(){...}") and end with "export default App;" — imports of react/react-dom are stripped automatically.';
 const HTML_HINT = 'Full HTML documents run as-is in a sandboxed preview frame.';
 
-function uid(){ return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-
-async function loadFiles(){
-  db = await openDB();
-  files = await dbGetAll();
-  renderList();
-}
-
-function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function timeAgo(ts){
-  const s = Math.floor((Date.now()-ts)/1000);
-  if(s<60) return 'just now';
-  if(s<3600) return Math.floor(s/60)+'m ago';
-  if(s<86400) return Math.floor(s/3600)+'h ago';
-  return Math.floor(s/86400)+'d ago';
-}
-
-function renderList(){
-  fileList.innerHTML = '';
-  if(files.length === 0){
-    fileList.innerHTML = '<div class="empty-note">No files pinned. Create or import one to get started.</div>';
-    return;
-  }
-  const sorted = [...files].sort((a,b) => b.updatedAt - a.updatedAt);
-  sorted.forEach(f => {
-    const card = document.createElement('div');
-    card.className = 'file-card' + (f.id === activeId ? ' active' : '');
-    const lines = f.code.split('\n').length;
-    card.innerHTML = `
-      <div class="fc-top">
-        <div class="fc-name">${escapeHtml(f.name)}</div>
-        <div class="fc-tag ${f.type}">${f.type}</div>
-      </div>
-      <div class="fc-meta">${lines} lines · ${timeAgo(f.updatedAt)}</div>
-    `;
-    card.onclick = () => selectFile(f.id);
-    fileList.appendChild(card);
-  });
-}
-
-function isMobile(){ return window.innerWidth <= 720; }
-
-function selectFile(id){
-  activeId = id;
-  const f = files.find(x=>x.id===id);
-  if(!f) return;
-  el('welcome').style.display = 'none';
-  el('workspace').style.display = 'flex';
-  el('curName').textContent = f.name;
-  el('typeTag').textContent = f.type;
-  el('typeTag').className = 'fc-tag ' + f.type;
-  el('codeArea').value = f.code;
-  renderList();
-  runPreview(f);
-  switchTab('preview');
-  if(isMobile()){
-    el('side').classList.remove('mobile-open');
-    el('mainPane').classList.remove('mobile-hidden');
-    el('backBtn').style.display = 'inline-block';
-  }
-}
-
-function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
-  el('pane-preview').classList.toggle('active', name==='preview');
-  el('pane-code').classList.toggle('active', name==='code');
-}
-document.querySelectorAll('.tab').forEach(t => t.onclick = () => switchTab(t.dataset.tab));
-
-/* Full screen: expands the preview to fill the app's own window (sidebar
-   and toolbar hidden). Stays fully contained inside the app — no OS-level
-   Fullscreen API, since that can kick an installed PWA out to the browser
-   chrome on some phones. */
-function enterFullscreen(){
-  document.body.classList.add('fullscreen-active');
-  el('exitFullscreenBtn').style.display = 'block';
-  switchTab('preview');
-}
-function exitFullscreen(){
-  document.body.classList.remove('fullscreen-active');
-  el('exitFullscreenBtn').style.display = 'none';
-}
-el('fullscreenBtn').onclick = enterFullscreen;
-el('exitFullscreenBtn').onclick = exitFullscreen;
-
-/* Manual sidebar hide/show — independent of full screen, and independent of
-   the mobile file-list overlay. Preference is remembered between visits. */
-function setSidebarHidden(hidden){
-  el('app').classList.toggle('sidebar-hidden', hidden);
-  el('showSidebarBtn').style.display = hidden ? 'block' : 'none';
-  localStorage.setItem('bench-sidebar-hidden', hidden ? '1' : '0');
-}
-el('hideSidebarBtn').onclick = () => setSidebarHidden(true);
-el('showSidebarBtn').onclick = () => setSidebarHidden(false);
-setSidebarHidden(localStorage.getItem('bench-sidebar-hidden') === '1');
-
-el('backBtn').onclick = () => {
-  el('side').classList.add('mobile-open');
-  el('mainPane').classList.add('mobile-hidden');
-};
-
-/* Known library -> global mapping. Covers the libraries commonly used in
-   tracker/dashboard-style artifacts. Anything outside this list gets stripped
-   with a console warning rather than crashing the preview. */
 const LIB_GLOBALS = {
   'react': 'React',
   'lucide-react': 'LucideReact',
@@ -721,9 +609,6 @@ const LIB_SCRIPTS = `
 <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"><\/script>
 `;
 
-/* Rewrites "import ... from 'module'" lines into destructuring against the
-   CDN globals above, since the preview has no bundler to resolve real
-   imports. Unknown modules are stripped (best effort, not a hard failure). */
 function transformImports(code){
   const importRe = /^\s*import\s+([^;]+?)\s+from\s+['"]([^'"]+)['"];?\s*$/gm;
   const unresolved = [];
@@ -746,10 +631,6 @@ function transformImports(code){
   return { transformed, unresolved };
 }
 
-/* window.storage shim: previewed artifacts call window.storage.get/set/delete/list
-   exactly like they would inside Claude.ai. Calls are relayed to the parent
-   page via postMessage, which does the real work against the Bench's own
-   IndexedDB, so storage-based trackers/journals work without modification. */
 const STORAGE_SHIM = `
 <script>
 window.storage = (function(){
@@ -813,52 +694,253 @@ ${cleaned}
 <\/script>
 </body></html>`;
 }
-
-function runPreview(f){
-  const frame = el('previewFrame');
-  frame.srcdoc = f.type === 'html' ? (STORAGE_SHIM + f.code) : buildJsxDoc(f.code);
+function docFor(f){
+  return f.type === 'html' ? (STORAGE_SHIM + f.code) : buildJsxDoc(f.code);
 }
 
-el('codeArea').addEventListener('change', async () => {
-  const f = files.find(x=>x.id===activeId);
-  if(!f) return;
-  f.code = el('codeArea').value;
-  f.updatedAt = Date.now();
-  await dbPut(f);
-  renderList();
-  runPreview(f);
+/* ===================== File store + open tabs ===================== */
+let files = [];             // every saved file: {id,name,type,code,createdAt,updatedAt,open,tabIndex}
+let currentCardIndex = 0;   // which open tab is centered in the carousel
+let codeEditingId = null;
+
+function uid(){ return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function timeAgo(ts){
+  const s = Math.floor((Date.now()-ts)/1000);
+  if(s<60) return 'just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+function openFilesSorted(){
+  return files.filter(f => f.open).sort((a,b) => (a.tabIndex ?? 0) - (b.tabIndex ?? 0));
+}
+
+async function loadFiles(){
+  db = await openDB();
+  files = await dbGetAll();
+  renderCarousel();
+}
+
+/* ---- Carousel (swipeable tab cards) ---- */
+function renderCarousel(){
+  const carousel = el('carousel');
+  const dotsEl = el('dots');
+  const openList = openFilesSorted();
+
+  if(openList.length === 0){
+    carousel.innerHTML = '<div class="empty-carousel">No tabs open yet.<br>Tap the <strong>+</strong> button to open a saved file, or add a new one.</div>';
+    dotsEl.innerHTML = '';
+    return;
+  }
+
+  carousel.innerHTML = openList.map(f => `
+    <div class="tab-card" data-id="${f.id}">
+      <div class="label-bar">
+        <span class="fc-tag ${f.type}">${f.type}</span>
+        <span class="fname">${escapeHtml(f.name)}</span>
+        <button class="icon-btn ghost" data-action="code" title="View code">&lt;/&gt;</button>
+        <button class="icon-btn ghost" data-action="fullscreen" title="Full screen">⛶</button>
+        <button class="icon-btn ghost" data-action="close" title="Close tab">✕</button>
+      </div>
+      <iframe data-frame="${f.id}" sandbox="allow-scripts allow-modals" srcdoc=""></iframe>
+    </div>
+  `).join('');
+
+  dotsEl.innerHTML = openList.map((f,i) => `<div class="dot${i===0?' active':''}" data-idx="${i}"></div>`).join('');
+
+  openList.forEach(f => {
+    const frame = carousel.querySelector(`iframe[data-frame="${f.id}"]`);
+    if(frame) frame.srcdoc = docFor(f);
+  });
+
+  if(currentCardIndex >= openList.length) currentCardIndex = Math.max(0, openList.length - 1);
+}
+
+el('carousel').addEventListener('click', (e) => {
+  const btn = e.target.closest('.icon-btn');
+  if(!btn) return;
+  const card = e.target.closest('.tab-card');
+  const id = card.dataset.id;
+  const action = btn.dataset.action;
+  if(action === 'close') closeTab(id);
+  if(action === 'code') openCodeEditor(id);
+  if(action === 'fullscreen'){
+    const idx = [...card.parentElement.children].indexOf(card);
+    currentCardIndex = idx;
+    enterFullscreen();
+  }
 });
 
-el('renameBtn').onclick = async () => {
-  const f = files.find(x=>x.id===activeId);
+let scrollTicking = false;
+el('carousel').addEventListener('scroll', () => {
+  if(scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => {
+    const carousel = el('carousel');
+    const cards = [...carousel.querySelectorAll('.tab-card')];
+    if(cards.length){
+      const mid = carousel.scrollLeft + carousel.clientWidth/2;
+      let closest = 0, closestDist = Infinity;
+      cards.forEach((c,i) => {
+        const cMid = c.offsetLeft + c.offsetWidth/2;
+        const dist = Math.abs(cMid - mid);
+        if(dist < closestDist){ closestDist = dist; closest = i; }
+      });
+      currentCardIndex = closest;
+      document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===closest));
+    }
+    scrollTicking = false;
+  });
+});
+
+el('dots').addEventListener('click', (e) => {
+  const dot = e.target.closest('.dot');
+  if(!dot) return;
+  const idx = +dot.dataset.idx;
+  const cards = el('carousel').querySelectorAll('.tab-card');
+  if(cards[idx]) cards[idx].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
+});
+
+async function closeTab(id){
+  const f = files.find(x=>x.id===id);
+  if(!f) return;
+  f.open = false;
+  await dbPut(f);
+  renderCarousel();
+}
+
+async function openTab(id){
+  const f = files.find(x=>x.id===id);
+  if(!f) return;
+  if(!f.open){
+    const maxIdx = Math.max(-1, ...files.filter(x=>x.open).map(x => x.tabIndex ?? 0));
+    f.open = true;
+    f.tabIndex = maxIdx + 1;
+    await dbPut(f);
+  }
+  renderCarousel();
+  closeLibrarySheet();
+  requestAnimationFrame(() => {
+    const card = el('carousel').querySelector(`.tab-card[data-id="${id}"]`);
+    if(card) card.scrollIntoView({ inline:'center', block:'nearest' });
+  });
+}
+
+/* ---- Full screen: hides chrome; cards go edge-to-edge, still swipeable ---- */
+function enterFullscreen(){
+  document.body.classList.add('fullscreen-active');
+  el('exitFullscreenBtn').style.display = 'block';
+  requestAnimationFrame(() => {
+    const cards = el('carousel').querySelectorAll('.tab-card');
+    if(cards[currentCardIndex]) cards[currentCardIndex].scrollIntoView({ inline:'center', block:'nearest' });
+  });
+}
+function exitFullscreen(){
+  document.body.classList.remove('fullscreen-active');
+  el('exitFullscreenBtn').style.display = 'none';
+  requestAnimationFrame(() => {
+    const cards = el('carousel').querySelectorAll('.tab-card');
+    if(cards[currentCardIndex]) cards[currentCardIndex].scrollIntoView({ inline:'center', block:'nearest' });
+  });
+}
+el('exitFullscreenBtn').onclick = exitFullscreen;
+
+/* ---- Library bottom sheet: every saved file, open/import/delete ---- */
+function renderLibrary(){
+  const body = el('libraryList');
+  if(files.length === 0){
+    body.innerHTML = '<div class="empty-note">No files saved yet. Use "+ New" or "Import" above.</div>';
+    return;
+  }
+  const sorted = [...files].sort((a,b) => b.updatedAt - a.updatedAt);
+  body.innerHTML = sorted.map(f => `
+    <div class="lib-row" data-id="${f.id}">
+      <div class="lib-info">
+        <div class="lib-name">${escapeHtml(f.name)}</div>
+        <div class="lib-meta"><span class="fc-tag ${f.type}">${f.type}</span> ${f.code.split('\n').length} lines · ${timeAgo(f.updatedAt)}</div>
+      </div>
+      <div class="lib-actions">
+        <button class="primary" data-action="open">${f.open ? 'Jump to' : 'Open'}</button>
+        <button class="danger" data-action="delete">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+el('libraryList').addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const row = e.target.closest('.lib-row');
+  const id = row.dataset.id;
+  if(btn.dataset.action === 'open') openTab(id);
+  if(btn.dataset.action === 'delete') deleteFromLibrary(id);
+});
+async function deleteFromLibrary(id){
+  const f = files.find(x=>x.id===id);
+  if(!f) return;
+  if(!confirm(`Delete "${f.name}"? This can't be undone.`)) return;
+  await dbDelete(id);
+  files = files.filter(x=>x.id!==id);
+  renderCarousel();
+  renderLibrary();
+}
+
+function openLibrary(){ renderLibrary(); el('librarySheetOverlay').classList.add('show'); }
+function closeLibrarySheet(){ el('librarySheetOverlay').classList.remove('show'); }
+el('libraryBtn').onclick = openLibrary;
+el('addTabBtn').onclick = openLibrary;
+el('librarySheetOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'librarySheetOverlay') closeLibrarySheet();
+});
+
+/* ---- Code editor overlay (also handles rename / export / delete) ---- */
+function openCodeEditor(id){
+  const f = files.find(x=>x.id===id);
+  if(!f) return;
+  codeEditingId = id;
+  el('codeFname').textContent = f.name;
+  el('codeTag').textContent = f.type;
+  el('codeTag').className = 'fc-tag ' + f.type;
+  el('codeArea').value = f.code;
+  el('codeOverlay').classList.add('show');
+}
+async function saveCodeEdits(){
+  if(!codeEditingId) return;
+  const f = files.find(x=>x.id===codeEditingId);
+  if(!f) return;
+  const newCode = el('codeArea').value;
+  if(newCode !== f.code){
+    f.code = newCode;
+    f.updatedAt = Date.now();
+    await dbPut(f);
+    const frame = document.querySelector(`iframe[data-frame="${f.id}"]`);
+    if(frame) frame.srcdoc = docFor(f);
+  }
+}
+el('codeBackBtn').onclick = async () => {
+  await saveCodeEdits();
+  el('codeOverlay').classList.remove('show');
+  codeEditingId = null;
+};
+el('codeRenameBtn').onclick = async () => {
+  const f = files.find(x=>x.id===codeEditingId);
   if(!f) return;
   const newName = prompt('Rename file', f.name);
   if(newName && newName.trim()){
     f.name = newName.trim();
     f.updatedAt = Date.now();
     await dbPut(f);
-    el('curName').textContent = f.name;
-    renderList();
+    el('codeFname').textContent = f.name;
+    renderCarousel();
   }
 };
-
-el('deleteBtn').onclick = async () => {
-  const f = files.find(x=>x.id===activeId);
-  if(!f) return;
-  if(!confirm(`Delete "${f.name}"? This can't be undone.`)) return;
-  await dbDelete(f.id);
-  files = files.filter(x=>x.id!==activeId);
-  activeId = null;
-  renderList();
-  el('workspace').style.display = 'none';
-  el('welcome').style.display = 'flex';
-};
-
-el('exportBtn').onclick = () => {
-  const f = files.find(x=>x.id===activeId);
+el('codeExportBtn').onclick = () => {
+  const f = files.find(x=>x.id===codeEditingId);
   if(!f) return;
   const ext = f.type === 'html' ? 'html' : 'jsx';
-  const blob = new Blob([f.code], {type: 'text/plain'});
+  const blob = new Blob([el('codeArea').value], {type: 'text/plain'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -868,14 +950,25 @@ el('exportBtn').onclick = () => {
   a.remove();
   URL.revokeObjectURL(url);
 };
+el('codeDeleteBtn').onclick = async () => {
+  const f = files.find(x=>x.id===codeEditingId);
+  if(!f) return;
+  if(!confirm(`Delete "${f.name}"? This can't be undone.`)) return;
+  await dbDelete(f.id);
+  files = files.filter(x=>x.id!==f.id);
+  codeEditingId = null;
+  el('codeOverlay').classList.remove('show');
+  renderCarousel();
+};
 
-el('newBtn').onclick = () => openModal();
+/* ---- New file / import (both open the result as a tab immediately) ---- */
+const overlay = el('overlay');
+el('newFromSheetBtn').onclick = () => openNewFileModal();
 el('mCancel').onclick = closeModal;
 el('mType').onchange = () => {
   el('mHint').textContent = el('mType').value === 'jsx' ? JSX_HINT : HTML_HINT;
 };
-
-function openModal(){
+function openNewFileModal(){
   el('modalTitle').textContent = 'New file';
   el('mName').value = '';
   el('mType').value = 'html';
@@ -885,7 +978,7 @@ function openModal(){
   el('mName').focus();
 }
 function closeModal(){ overlay.classList.remove('show'); }
-overlay.onclick = (e) => { if(e.target === overlay) closeModal(); };
+overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
 
 el('mSave').onclick = async () => {
   const name = el('mName').value.trim();
@@ -894,34 +987,46 @@ el('mSave').onclick = async () => {
   if(!name){ el('mName').focus(); return; }
   if(!code.trim()){ el('mCode').focus(); return; }
   const now = Date.now();
-  const newFile = { id: uid(), name, type, code, createdAt: now, updatedAt: now };
+  const maxIdx = Math.max(-1, ...files.filter(x=>x.open).map(x => x.tabIndex ?? 0));
+  const newFile = { id: uid(), name, type, code, createdAt: now, updatedAt: now, open: true, tabIndex: maxIdx+1 };
   files.push(newFile);
   await dbPut(newFile);
-  renderList();
   closeModal();
-  selectFile(newFile.id);
+  closeLibrarySheet();
+  renderCarousel();
+  requestAnimationFrame(() => {
+    const card = el('carousel').querySelector(`.tab-card[data-id="${newFile.id}"]`);
+    if(card) card.scrollIntoView({ inline:'center', block:'nearest' });
+  });
 };
 
-el('importBtn').onclick = () => el('importInput').click();
+el('importFromSheetBtn').onclick = () => el('importInput').click();
 el('importInput').onchange = async (e) => {
   const fileObjs = Array.from(e.target.files || []);
+  let maxIdx = Math.max(-1, ...files.filter(x=>x.open).map(x => x.tabIndex ?? 0));
+  let lastId = null;
   for(const fo of fileObjs){
     const text = await fo.text();
     const ext = fo.name.split('.').pop().toLowerCase();
     const type = (ext === 'jsx' || ext === 'tsx' || ext === 'js') ? 'jsx' : 'html';
     const name = fo.name.replace(/\.(html|htm|jsx|tsx|js)$/i, '');
     const now = Date.now();
-    const newFile = { id: uid(), name, type, code: text, createdAt: now, updatedAt: now };
+    maxIdx += 1;
+    const newFile = { id: uid(), name, type, code: text, createdAt: now, updatedAt: now, open: true, tabIndex: maxIdx };
     files.push(newFile);
     await dbPut(newFile);
+    lastId = newFile.id;
   }
-  renderList();
+  closeLibrarySheet();
+  renderCarousel();
+  if(lastId){
+    requestAnimationFrame(() => {
+      const card = el('carousel').querySelector(`.tab-card[data-id="${lastId}"]`);
+      if(card) card.scrollIntoView({ inline:'center', block:'nearest' });
+    });
+  }
   e.target.value = '';
 };
-
-if(isMobile()){
-  el('side').classList.add('mobile-open');
-}
 </script>
 </body>
 </html>
