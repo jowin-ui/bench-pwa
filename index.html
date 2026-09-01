@@ -214,6 +214,51 @@
   .swatch{ width:22px; height:22px; border-radius:50%; border:2px solid transparent; flex-shrink:0; }
   .swatch.sel{ border-color:var(--ink); }
 
+  /* ---------- Stats strip ---------- */
+  .stats-strip{ display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px 14px; margin: 8px 0 4px; }
+  .stat{ display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--ink-dim); }
+  .stat .n{ font-family:'Fraunces',serif; font-size:15px; color:var(--ink); }
+  .week-dots{ display:flex; gap:4px; margin-left:auto; }
+  .week-dot{ width:8px; height:8px; border-radius:50%; background:var(--card-soft); border:1.5px solid var(--line); }
+  .week-dot.done{ background:var(--good); border-color:var(--good); }
+  .week-dot.today{ box-shadow: 0 0 0 2px rgba(217,142,115,.35); }
+
+  /* ---------- Drag to reorder ---------- */
+  .drag-handle{ touch-action:none; cursor:grab; color:var(--ink-faint); font-size:15px; padding:4px 2px; flex-shrink:0; user-select:none; align-self:center; }
+  .sortable-item.dragging{ opacity:.45; }
+  .sortable-list{ display:flex; flex-direction:column; }
+
+  /* ---------- Quadrant pill / select ---------- */
+  .q-pill{ font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; }
+  .q-select{ border:1px solid var(--line); border-radius:8px; padding:4px 6px; font-size:11px; background:var(--bg); color:var(--ink); flex-shrink:0; }
+
+  /* ---------- Matrix view ---------- */
+  .unsorted-wrap{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .unsorted-chip{ display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:6px 6px 6px 12px; font-size:12px; }
+  .unsorted-chip select{ border:none; background:var(--card-soft); border-radius:999px; padding:4px 8px; font-size:10.5px; font-weight:600; }
+  .matrix-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:420px){ .matrix-grid{ grid-template-columns:1fr; } }
+  .q-cell{ border-radius:16px; padding:12px; border:1px solid var(--line); background:var(--card); min-height:100px; }
+  .q-head{ display:flex; align-items:baseline; gap:6px; margin-bottom:8px; }
+  .q-head .qname{ font-weight:700; font-size:13px; }
+  .q-head .qsub{ font-size:10.5px; color:var(--ink-dim); }
+  .q-row{ display:flex; align-items:center; gap:6px; background:var(--card-soft); border-radius:10px; padding:7px 8px; margin-bottom:6px; font-size:12px; }
+  .q-row .t{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .q-row .t.done{ text-decoration:line-through; color:var(--ink-faint); }
+  .q-empty{ font-size:11.5px; color:var(--ink-faint); padding:2px; }
+  .q-addbtn{ width:100%; margin-top:2px; }
+
+  /* ---------- Breakdown / Resources modals ---------- */
+  .breakdown-list{ display:flex; flex-direction:column; gap:8px; margin:10px 0 16px; }
+  .breakdown-step{ display:flex; gap:10px; align-items:flex-start; background:var(--card-soft); border-radius:12px; padding:10px 12px; font-size:13px; line-height:1.5; }
+  .breakdown-step .num{ font-family:'Fraunces',serif; font-weight:600; color:var(--accent-ink); flex-shrink:0; }
+  .resource-row{ border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:10px; }
+  .resource-row .rname{ font-weight:700; font-size:13.5px; margin-bottom:3px; }
+  .resource-row .rdesc{ font-size:12px; color:var(--ink-dim); line-height:1.5; margin-bottom:8px; }
+  .resource-row a{ font-size:12px; font-weight:600; color:var(--accent-ink); text-decoration:none; }
+  .backup-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .backup-row .btn{ flex:1; }
+
   /* ---------- Bottom tabs ---------- */
   #tabbar{
     position:fixed; left:0; right:0; bottom:0; z-index:40;
@@ -238,6 +283,7 @@
       <h1 id="greeting">Hi there</h1>
       <span class="date" id="dateLabel"></span>
     </div>
+    <button class="icon-btn" id="resourcesBtn" title="Helpful resources">💡</button>
     <button class="icon-btn" id="settingsBtn" title="Categories">⚙️</button>
   </div>
 
@@ -245,6 +291,8 @@
 
     <!-- ============ TODAY ============ -->
     <div class="view show" id="view-today">
+
+      <div class="stats-strip" id="statsStrip"></div>
 
       <div class="hero">
         <h2>Feeling stuck?</h2>
@@ -287,6 +335,13 @@
         <input type="text" id="taskTitleInput" placeholder="New task…">
         <div class="add-task-row">
           <select id="taskCategorySelect"></select>
+          <select id="taskQuadrantSelect">
+            <option value="">Priority: unsorted</option>
+            <option value="q1">🔥 Do first (urgent+important)</option>
+            <option value="q2">📅 Schedule (important)</option>
+            <option value="q3">🤝 Delegate (urgent)</option>
+            <option value="q4">🗑 Eliminate (neither)</option>
+          </select>
           <label class="chk-label"><input type="checkbox" id="taskTwoMinChk"> 2-min task</label>
         </div>
         <input type="text" id="taskMvpInput" placeholder="Smallest first step (optional) — e.g. \"open the doc\"">
@@ -307,12 +362,23 @@
       <div id="weekWrap"></div>
     </div>
 
+    <!-- ============ MATRIX (Eisenhower) ============ -->
+    <div class="view" id="view-matrix">
+      <p class="empty-hint" style="margin:8px 2px 4px;">Sort by what actually matters: urgent vs. important. Assign a quadrant below, or from the priority dropdown when adding a task.</p>
+
+      <div class="section-label">Unsorted</div>
+      <div class="unsorted-wrap" id="unsortedWrap"></div>
+
+      <div class="matrix-grid" id="matrixGrid"></div>
+    </div>
+
   </div>
 
   <div id="tabbar">
     <button class="tab-btn active" data-view="today"><span class="ic">🎯</span>Today</button>
     <button class="tab-btn" data-view="tasks"><span class="ic">📋</span>Tasks</button>
     <button class="tab-btn" data-view="week"><span class="ic">🗓️</span>Week</button>
+    <button class="tab-btn" data-view="matrix"><span class="ic">⏱️</span>Matrix</button>
   </div>
 </div>
 
@@ -344,17 +410,94 @@
     <h3>Categories</h3>
     <div id="catEditList"></div>
     <button class="btn" id="addCatBtn" style="margin-top:6px;">+ Add category</button>
+    <h3 style="margin-top:22px;">Backup</h3>
+    <div class="backup-row">
+      <button class="btn" id="exportBtn">⬇ Export backup</button>
+      <button class="btn" id="importBtn">⬆ Import backup</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
     <h3 style="margin-top:22px;">Data</h3>
     <button class="btn danger block" id="resetDataBtn">Erase all data</button>
   </div>
 </div>
 
-<!-- SCHEDULE-TO-DAY PICKER -->
+<!-- SCHEDULE / ASSIGN PICKER (reused for week days and matrix quadrants) -->
 <div class="modal-overlay" id="scheduleModal">
   <div class="modal">
     <div class="modal-close-row"><button class="icon-btn" id="scheduleCloseBtn">✕</button></div>
-    <h3>Add a task to this day</h3>
+    <h3 id="scheduleModalTitle">Add a task to this day</h3>
     <div id="scheduleTaskList"></div>
+  </div>
+</div>
+
+<!-- EDIT TASK MODAL -->
+<div class="modal-overlay" id="editTaskModal">
+  <div class="modal">
+    <div class="modal-close-row"><button class="icon-btn" id="editTaskCloseBtn">✕</button></div>
+    <h3>Edit task</h3>
+    <input type="text" id="editTitleInput" placeholder="Task title" style="width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13.5px; margin-bottom:8px; background:var(--bg);">
+    <div class="add-task-row">
+      <select id="editCategorySelect"></select>
+      <select id="editQuadrantSelect">
+        <option value="">Priority: unsorted</option>
+        <option value="q1">🔥 Do first</option>
+        <option value="q2">📅 Schedule</option>
+        <option value="q3">🤝 Delegate</option>
+        <option value="q4">🗑 Eliminate</option>
+      </select>
+      <label class="chk-label"><input type="checkbox" id="editTwoMinChk"> 2-min task</label>
+    </div>
+    <input type="text" id="editMvpInput" placeholder="Smallest first step (optional)" style="width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13.5px; margin-bottom:12px; background:var(--bg);">
+    <button class="btn primary block" id="editSaveBtn" style="margin-bottom:8px;">Save changes</button>
+    <button class="btn danger block" id="editDeleteBtn">Delete task</button>
+  </div>
+</div>
+
+<!-- BREAKDOWN MODAL -->
+<div class="modal-overlay" id="breakdownModal">
+  <div class="modal">
+    <div class="modal-close-row"><button class="icon-btn" id="breakdownCloseBtn">✕</button></div>
+    <h3 id="breakdownTitle">Break it down</h3>
+    <div class="breakdown-list" id="breakdownList"></div>
+    <div class="resource-row">
+      <div class="rname">Want it sliced by AI instead?</div>
+      <div class="rdesc">Goblin.tools' free "Magic ToDo" will take a vague or big task and slice it into brainless micro-steps for you.</div>
+      <a href="https://goblin.tools/" target="_blank" rel="noopener">Open Goblin.tools ↗</a>
+    </div>
+    <button class="btn primary block" id="breakdownTimerBtn">⏱ Start 5-min timer on this</button>
+  </div>
+</div>
+
+<!-- RESOURCES MODAL -->
+<div class="modal-overlay" id="resourcesModal">
+  <div class="modal">
+    <div class="modal-close-row"><button class="icon-btn" id="resourcesCloseBtn">✕</button></div>
+    <h3>Free tools that help</h3>
+    <div class="resource-row">
+      <div class="rname">Goblin.tools — Magic ToDo</div>
+      <div class="rdesc">Free AI breakdown tool. Type in any vague or large task and it slices it into micro-steps.</div>
+      <a href="https://goblin.tools/" target="_blank" rel="noopener">Open ↗</a>
+    </div>
+    <div class="resource-row">
+      <div class="rname">Focusmate — body doubling</div>
+      <div class="rdesc">Pairs you with a virtual working partner for quiet 25- or 50-minute sessions. 3 free sessions/week.</div>
+      <a href="https://www.focusmate.com/" target="_blank" rel="noopener">Open ↗</a>
+    </div>
+    <div class="resource-row">
+      <div class="rname">Understood.org</div>
+      <div class="rdesc">Free strategies, printable matrices and community support for executive dysfunction and overload.</div>
+      <a href="https://www.understood.org/" target="_blank" rel="noopener">Open ↗</a>
+    </div>
+    <div class="resource-row">
+      <div class="rname">ADDitude Magazine</div>
+      <div class="rdesc">Expert strategies and resources for managing executive dysfunction and overwhelm.</div>
+      <a href="https://www.additudemag.com/" target="_blank" rel="noopener">Open ↗</a>
+    </div>
+    <div class="resource-row">
+      <div class="rname">Reset your nervous system</div>
+      <div class="rdesc">Search for "task paralysis reset" or "deep brown noise" — bilateral stimulation and brown noise can quiet looping thoughts.</div>
+      <a href="https://www.youtube.com/results?search_query=task+paralysis+reset+brown+noise" target="_blank" rel="noopener">Search YouTube ↗</a>
+    </div>
   </div>
 </div>
 
@@ -381,9 +524,17 @@ function defaultData(){
     ],
     tasks: [],
     weekThemes: {0:null,1:null,2:null,3:null,4:null,5:null,6:null},
-    todayPick: null // { date:'YYYY-MM-DD', mode, taskIds:[...], flipped:{} }
+    todayPick: null, // { date:'YYYY-MM-DD', mode, taskIds:[...], flipped:{} }
+    completions: []  // ms timestamps, one per "marked done" event — never removed on undo, so streaks stay honest
   };
 }
+const QUADRANTS = [
+  { id:'q1', label:'Do first',  sub:'Urgent & important',     color: '#D98E73' },
+  { id:'q2', label:'Schedule',  sub:'Important, not urgent',  color: '#5B8DB8' },
+  { id:'q3', label:'Delegate',  sub:'Urgent, not important',  color: '#D9A441' },
+  { id:'q4', label:'Eliminate', sub:'Neither',                color: '#9C9488' }
+];
+function quadrantById(id){ return QUADRANTS.find(q=>q.id===id); }
 function getCssVar(name){
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#999';
 }
@@ -410,6 +561,44 @@ function todayDayIndex(){
 }
 function catById(id){ return data.categories.find(c=>c.id===id); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function dayKeyFromTs(ts){
+  const d = new Date(ts);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function byOrder(a,b){ return (a.order ?? a.createdAt ?? 0) - (b.order ?? b.createdAt ?? 0); }
+
+/* ---- Drag-to-reorder: pointer-based, works for mouse and touch ---- */
+function enableSortable(container, onReorder){
+  if(!container || container.dataset.sortableBound) { /* rebind each render below via fresh container anyway */ }
+  container.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest('.drag-handle');
+    if(!handle) return;
+    const item = handle.closest('.sortable-item');
+    if(!item) return;
+    e.preventDefault();
+    item.classList.add('dragging');
+    try{ item.setPointerCapture(e.pointerId); }catch(_){}
+    const move = (ev) => {
+      const siblings = [...container.querySelectorAll(':scope > .sortable-item')].filter(x=>x!==item);
+      const y = ev.clientY;
+      let placed = false;
+      for(const sib of siblings){
+        const r = sib.getBoundingClientRect();
+        if(y < r.top + r.height/2){ container.insertBefore(item, sib); placed = true; break; }
+      }
+      if(!placed) container.appendChild(item);
+    };
+    const up = () => {
+      item.classList.remove('dragging');
+      container.removeEventListener('pointermove', move);
+      container.removeEventListener('pointerup', up);
+      const ids = [...container.querySelectorAll(':scope > .sortable-item')].map(x=>x.dataset.id);
+      onReorder(ids);
+    };
+    container.addEventListener('pointermove', move);
+    container.addEventListener('pointerup', up, { once:true });
+  });
+}
 
 /* ===================== Header ===================== */
 function renderHeader(){
@@ -431,6 +620,7 @@ function switchView(name){
   if(name==='tasks') renderTasksView();
   if(name==='week') renderWeekView();
   if(name==='today') renderTodayView();
+  if(name==='matrix') renderMatrixView();
 }
 
 /* ===================== TODAY VIEW ===================== */
@@ -510,8 +700,43 @@ function shuffle(arr){
 
 function renderTodayView(){
   renderHeader();
+  renderStats();
   renderPickResults();
   renderTwoMinRow();
+}
+
+/* ---- Stats: streak + today count + last-7-days dots ---- */
+function completionDayCounts(){
+  const map = {};
+  for(const ts of data.completions){ const k = dayKeyFromTs(ts); map[k] = (map[k]||0) + 1; }
+  return map;
+}
+function computeStreak(){
+  const map = completionDayCounts();
+  let streak = 0;
+  const d = new Date();
+  if(!map[todayKey()]) d.setDate(d.getDate() - 1); // today hasn't happened yet — don't break the streak for that
+  while(true){
+    const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(map[k]){ streak++; d.setDate(d.getDate() - 1); } else break;
+  }
+  return streak;
+}
+function renderStats(){
+  const map = completionDayCounts();
+  const streak = computeStreak();
+  const todayCount = map[todayKey()] || 0;
+  const dots = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    dots.push(`<span class="week-dot${map[k]?' done':''}${i===0?' today':''}" title="${k}"></span>`);
+  }
+  el('statsStrip').innerHTML = `
+    <span class="stat">🔥 <span class="n">${streak}</span>&nbsp;day streak</span>
+    <span class="stat">✅ <span class="n">${todayCount}</span>&nbsp;today</span>
+    <span class="week-dots">${dots.join('')}</span>
+  `;
 }
 
 function renderPickResults(){
@@ -554,6 +779,7 @@ function renderPickResults(){
           <button class="btn small primary" data-action="timer" data-id="${t.id}">⏱ 5-min timer</button>
           <button class="btn small" data-action="done" data-id="${t.id}">${t.done?'Undo':'Done ✓'}</button>
           <button class="btn small ghost" data-action="swap" data-id="${t.id}">🔀 Swap</button>
+          <button class="btn small ghost" data-action="breakdown" data-id="${t.id}">🧩 Break it down</button>
         </div>
       </div>
     </div>`;
@@ -574,8 +800,9 @@ el('pickResults').addEventListener('click', (e) => {
   const id = btn.dataset.id;
   const action = btn.dataset.action;
   if(action === 'timer') openTimer(id);
-  if(action === 'done') toggleDone(id, () => { renderPickResults(); renderTwoMinRow(); });
+  if(action === 'done') toggleDone(id, () => { renderPickResults(); renderTwoMinRow(); renderStats(); });
   if(action === 'swap') swapPick(id);
+  if(action === 'breakdown') openBreakdown(id);
 });
 
 function swapPick(id){
@@ -604,7 +831,7 @@ function renderTwoMinRow(){
       <span class="cb"></span>${escapeHtml(t.title)}
     </div>`).join('') + '</div>';
   row.querySelectorAll('.twomin-chip').forEach(chip => {
-    chip.onclick = () => toggleDone(chip.dataset.id, () => { renderTwoMinRow(); renderPickResults(); });
+    chip.onclick = () => toggleDone(chip.dataset.id, () => { renderTwoMinRow(); renderPickResults(); renderStats(); });
   });
 }
 
@@ -613,6 +840,7 @@ function toggleDone(id, cb){
   if(!t) return;
   t.done = !t.done;
   t.doneAt = t.done ? Date.now() : null;
+  if(t.done) data.completions.push(Date.now());
   save();
   cb && cb();
 }
@@ -625,8 +853,8 @@ function quickAdd(){
   const title = input.value.trim();
   if(!title) return;
   data.tasks.push({
-    id: uid(), title, categoryId: data.categories[0].id, day: null,
-    twoMin: false, mvp: '', done:false, doneAt:null, createdAt: Date.now()
+    id: uid(), title, categoryId: data.categories[0].id, day: null, quadrant: null,
+    twoMin: false, mvp: '', done:false, doneAt:null, createdAt: Date.now(), order: Date.now()
   });
   save();
   input.value = '';
@@ -683,7 +911,7 @@ el('timerStartBtn').onclick = () => {
 function stopTimerInterval(){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } }
 el('timerStopBtn').onclick = () => { el('timerOverlay').classList.remove('show'); stopTimerInterval(); };
 el('timerDoneBtn').onclick = () => {
-  if(timerTaskId) toggleDone(timerTaskId, () => { renderPickResults(); renderTwoMinRow(); renderTasksView(); });
+  if(timerTaskId) toggleDone(timerTaskId, () => { renderPickResults(); renderTwoMinRow(); renderTasksView(); renderStats(); });
   el('timerOverlay').classList.remove('show');
   stopTimerInterval();
 };
@@ -704,21 +932,23 @@ el('addTaskBtn').onclick = () => {
     id: uid(), title,
     categoryId: el('taskCategorySelect').value,
     day: null,
+    quadrant: el('taskQuadrantSelect').value || null,
     twoMin: el('taskTwoMinChk').checked,
     mvp: el('taskMvpInput').value.trim(),
-    done:false, doneAt:null, createdAt: Date.now()
+    done:false, doneAt:null, createdAt: Date.now(), order: Date.now()
   });
   save();
   el('taskTitleInput').value = '';
   el('taskMvpInput').value = '';
   el('taskTwoMinChk').checked = false;
+  el('taskQuadrantSelect').value = '';
   renderTasksView();
 };
 
 function renderTasksView(){
   refreshCategorySelect();
   const wrap = el('taskListWrap');
-  const list = data.tasks.filter(t => taskFilter==='active' ? !t.done : t.done);
+  const list = data.tasks.filter(t => taskFilter==='active' ? !t.done : t.done).sort(byOrder);
   if(!list.length){
     wrap.innerHTML = `<p class="empty-hint">${taskFilter==='active' ? 'Nothing on the list yet — add something above, even something small.' : 'Nothing marked done yet.'}</p>`;
     return;
@@ -729,24 +959,36 @@ function renderTasksView(){
     return `
     <div class="cat-group">
       <div class="cat-head"><span class="cat-dot" style="background:${cat.color}"></span><span class="name">${escapeHtml(cat.name)}</span><span class="count">${items.length}</span></div>
-      ${items.map(t => taskRowHtml(t)).join('')}
+      <div class="sortable-list" data-cat="${cat.id}">
+        ${items.map(t => taskRowHtml(t)).join('')}
+      </div>
     </div>`;
   }).join('');
+  wrap.querySelectorAll('.sortable-list').forEach(list => {
+    enableSortable(list, (ids) => {
+      ids.forEach((id,i) => { const t = data.tasks.find(x=>x.id===id); if(t) t.order = i; });
+      save();
+    });
+  });
 }
 function taskRowHtml(t){
   const dayLabel = t.day!=null ? DAY_SHORT[t.day] : null;
+  const q = t.quadrant ? quadrantById(t.quadrant) : null;
   return `
-  <div class="task-row" data-id="${t.id}">
+  <div class="task-row sortable-item" data-id="${t.id}">
+    <span class="drag-handle" title="Drag to reorder">⠿</span>
     <div class="task-check${t.done?' done':''}" data-action="check">${t.done?'✓':''}</div>
     <div class="task-body">
       <div class="task-title${t.done?' done':''}">${escapeHtml(t.title)}</div>
       <div class="task-meta">
+        ${q ? `<span class="q-pill" style="background:${q.color}">${q.label}</span>` : ''}
         ${t.twoMin ? '<span class="meta-pill">2-min</span>' : ''}
         ${dayLabel ? `<span class="meta-pill">📅 ${dayLabel}</span>` : ''}
         ${t.mvp ? `<span class="meta-pill">→ ${escapeHtml(t.mvp)}</span>` : ''}
       </div>
     </div>
     <div class="task-actions">
+      <button data-action="breakdown" title="Break it down">🧩</button>
       <button data-action="edit" title="Edit">✎</button>
       <button data-action="delete" title="Delete">🗑</button>
     </div>
@@ -761,7 +1003,8 @@ el('taskListWrap').addEventListener('click', (e) => {
   const action = btn.dataset.action;
   if(action==='check') toggleDone(id, renderTasksView);
   if(action==='delete') deleteTask(id);
-  if(action==='edit') editTask(id);
+  if(action==='edit') openEditTask(id);
+  if(action==='breakdown') openBreakdown(id);
 });
 function deleteTask(id){
   const t = data.tasks.find(x=>x.id===id);
@@ -771,17 +1014,70 @@ function deleteTask(id){
   save();
   renderTasksView();
 }
-function editTask(id){
+
+/* ---- Edit task modal ---- */
+let editingTaskId = null;
+function openEditTask(id){
   const t = data.tasks.find(x=>x.id===id);
   if(!t) return;
-  const newTitle = prompt('Edit task', t.title);
-  if(newTitle===null) return;
-  if(newTitle.trim()) t.title = newTitle.trim();
-  const newMvp = prompt('First step (optional)', t.mvp||'');
-  if(newMvp!==null) t.mvp = newMvp.trim();
-  save();
-  renderTasksView();
+  editingTaskId = id;
+  el('editCategorySelect').innerHTML = data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  el('editTitleInput').value = t.title;
+  el('editCategorySelect').value = t.categoryId;
+  el('editQuadrantSelect').value = t.quadrant || '';
+  el('editTwoMinChk').checked = !!t.twoMin;
+  el('editMvpInput').value = t.mvp || '';
+  el('editTaskModal').classList.add('show');
 }
+el('editTaskCloseBtn').onclick = () => el('editTaskModal').classList.remove('show');
+el('editTaskModal').addEventListener('click', (e) => { if(e.target.id==='editTaskModal') el('editTaskModal').classList.remove('show'); });
+el('editSaveBtn').onclick = () => {
+  const t = data.tasks.find(x=>x.id===editingTaskId);
+  if(!t) return;
+  const title = el('editTitleInput').value.trim();
+  if(!title) { el('editTitleInput').focus(); return; }
+  t.title = title;
+  t.categoryId = el('editCategorySelect').value;
+  t.quadrant = el('editQuadrantSelect').value || null;
+  t.twoMin = el('editTwoMinChk').checked;
+  t.mvp = el('editMvpInput').value.trim();
+  save();
+  el('editTaskModal').classList.remove('show');
+  renderTasksView(); renderMatrixView(); renderWeekView(); renderTwoMinRow();
+};
+el('editDeleteBtn').onclick = () => {
+  const t = data.tasks.find(x=>x.id===editingTaskId);
+  if(!t) return;
+  if(!confirm(`Delete "${t.title}"?`)) return;
+  data.tasks = data.tasks.filter(x=>x.id!==editingTaskId);
+  save();
+  el('editTaskModal').classList.remove('show');
+  renderTasksView(); renderMatrixView(); renderWeekView(); renderTwoMinRow();
+};
+
+/* ---- Break it down (heuristic checklist + link to real AI tool) ---- */
+let breakdownTaskId = null;
+function openBreakdown(id){
+  const t = data.tasks.find(x=>x.id===id);
+  if(!t) return;
+  breakdownTaskId = id;
+  el('breakdownTitle').textContent = t.title;
+  const steps = [
+    `Gather whatever you need to start "${t.title}" — nothing else, just what's in arm's reach.`,
+    t.mvp ? `Do the smallest first move: ${t.mvp}.` : `Do the smallest possible first move — opening a doc, picking up one item, sending one text all count.`,
+    `Work on it for just 5 minutes. You're not committing to finishing, only to starting.`,
+    `When the timer goes off, notice where you stopped so restarting later is easy.`,
+    `Either keep going, or turn what's left into its own task for next time.`
+  ];
+  el('breakdownList').innerHTML = steps.map((s,i) => `<div class="breakdown-step"><span class="num">${i+1}</span><span>${escapeHtml(s)}</span></div>`).join('');
+  el('breakdownModal').classList.add('show');
+}
+el('breakdownCloseBtn').onclick = () => el('breakdownModal').classList.remove('show');
+el('breakdownModal').addEventListener('click', (e) => { if(e.target.id==='breakdownModal') el('breakdownModal').classList.remove('show'); });
+el('breakdownTimerBtn').onclick = () => {
+  el('breakdownModal').classList.remove('show');
+  if(breakdownTaskId) openTimer(breakdownTaskId);
+};
 
 /* ===================== WEEK VIEW ===================== */
 function renderWeekView(){
@@ -828,14 +1124,22 @@ el('weekWrap').addEventListener('click', (e) => {
   const add = e.target.closest('[data-action="addtoday"]');
   if(add){
     scheduleTargetDay = +add.closest('.day-card').dataset.day;
-    openScheduleModal();
+    openScheduleModal('day', `Add a task to ${DAY_NAMES[scheduleTargetDay]}`);
   }
 });
-function openScheduleModal(){
+
+/* Generalized "assign task" picker — used for scheduling to a week day AND assigning to a matrix quadrant */
+let scheduleMode = 'day'; // 'day' | 'quadrant'
+let scheduleTargetQuadrant = null;
+function openScheduleModal(mode, title){
+  scheduleMode = mode;
+  el('scheduleModalTitle').textContent = title;
   const wrap = el('scheduleTaskList');
-  const items = incompleteTasks().filter(t => t.day !== scheduleTargetDay);
+  const items = mode === 'day'
+    ? incompleteTasks().filter(t => t.day !== scheduleTargetDay)
+    : incompleteTasks().filter(t => t.quadrant !== scheduleTargetQuadrant);
   if(!items.length){
-    wrap.innerHTML = '<p class="empty-hint">No unscheduled tasks left — add more in the Tasks tab.</p>';
+    wrap.innerHTML = '<p class="empty-hint">Nothing left to add — everything eligible is already there, or add more in the Tasks tab.</p>';
   } else {
     wrap.innerHTML = items.map(t => {
       const cat = catById(t.categoryId);
@@ -853,12 +1157,89 @@ el('scheduleTaskList').addEventListener('click', (e) => {
   const row = e.target.closest('.task-row');
   if(!row) return;
   const t = data.tasks.find(x=>x.id===row.dataset.id);
-  if(t){ t.day = scheduleTargetDay; save(); }
+  if(t){
+    if(scheduleMode === 'day') t.day = scheduleTargetDay;
+    else t.quadrant = scheduleTargetQuadrant;
+    save();
+  }
   el('scheduleModal').classList.remove('show');
-  renderWeekView();
+  if(scheduleMode === 'day') renderWeekView(); else renderMatrixView();
 });
 el('scheduleCloseBtn').onclick = () => el('scheduleModal').classList.remove('show');
 el('scheduleModal').addEventListener('click', (e) => { if(e.target.id==='scheduleModal') el('scheduleModal').classList.remove('show'); });
+
+/* ===================== MATRIX VIEW (Eisenhower) ===================== */
+function renderMatrixView(){
+  const active = data.tasks.filter(t => !t.done).sort(byOrder);
+  const unsorted = active.filter(t => !t.quadrant);
+
+  el('unsortedWrap').innerHTML = unsorted.length ? unsorted.map(t => {
+    const cat = catById(t.categoryId);
+    return `
+    <div class="unsorted-chip" data-id="${t.id}">
+      <span class="cat-dot" style="background:${cat?cat.color:'#999'}"></span>${escapeHtml(t.title)}
+      <select data-action="assign">
+        <option value="">Sort into…</option>
+        ${QUADRANTS.map(q => `<option value="${q.id}">${q.label}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('') : '<p class="empty-hint">Everything is sorted. New tasks land here until you give them a quadrant.</p>';
+
+  el('matrixGrid').innerHTML = QUADRANTS.map(q => {
+    const items = active.filter(t => t.quadrant === q.id);
+    return `
+    <div class="q-cell">
+      <div class="q-head">
+        <span class="qname" style="color:${q.color}">${q.label}</span>
+        <span class="qsub">${q.sub}</span>
+      </div>
+      <div class="sortable-list" data-quadrant="${q.id}">
+        ${items.length ? items.map(t => {
+          const cat = catById(t.categoryId);
+          return `
+          <div class="q-row sortable-item" data-id="${t.id}">
+            <span class="drag-handle" title="Drag to reorder">⠿</span>
+            <span class="cat-dot" style="background:${cat?cat.color:'#999'}"></span>
+            <span class="t${t.done?' done':''}">${escapeHtml(t.title)}</span>
+            <select class="q-select" data-action="move">
+              <option value="">Move…</option>
+              ${QUADRANTS.filter(o=>o.id!==q.id).map(o => `<option value="${o.id}">${o.label}</option>`).join('')}
+              <option value="__unsort">Unsort</option>
+            </select>
+          </div>` ;
+        }).join('') : '<div class="q-empty">Nothing here.</div>'}
+      </div>
+      <button class="btn small q-addbtn" data-action="addq" data-quadrant="${q.id}">+ Add task</button>
+    </div>`;
+  }).join('');
+
+  el('matrixGrid').querySelectorAll('.sortable-list').forEach(list => {
+    enableSortable(list, (ids) => {
+      ids.forEach((id,i) => { const t = data.tasks.find(x=>x.id===id); if(t) t.order = i; });
+      save();
+    });
+  });
+}
+el('unsortedWrap').addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-action="assign"]');
+  if(!sel || !sel.value) return;
+  const id = sel.closest('.unsorted-chip').dataset.id;
+  const t = data.tasks.find(x=>x.id===id);
+  if(t){ t.quadrant = sel.value; save(); renderMatrixView(); }
+});
+el('matrixGrid').addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-action="move"]');
+  if(!sel || !sel.value) return;
+  const id = sel.closest('.q-row').dataset.id;
+  const t = data.tasks.find(x=>x.id===id);
+  if(t){ t.quadrant = sel.value === '__unsort' ? null : sel.value; save(); renderMatrixView(); }
+});
+el('matrixGrid').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action="addq"]');
+  if(!btn) return;
+  scheduleTargetQuadrant = btn.dataset.quadrant;
+  openScheduleModal('quadrant', `Add a task to "${quadrantById(scheduleTargetQuadrant).label}"`);
+});
 
 /* ===================== SETTINGS / CATEGORIES ===================== */
 const SWATCHES = ['#5B8DB8','#D9A441','#C97B84','#7C9885','#8B7FC9','#4EA3A0','#C67A4E','#6B8E6E'];
@@ -884,13 +1265,13 @@ el('catEditList').addEventListener('click', (e) => {
   const cat = catById(row.dataset.id);
   if(!cat) return;
   const swEl = e.target.closest('[data-action="color"]');
-  if(swEl){ cat.color = swEl.dataset.color; save(); renderCatEditor(); renderTasksView(); renderWeekView(); return; }
+  if(swEl){ cat.color = swEl.dataset.color; save(); renderCatEditor(); renderTasksView(); renderWeekView(); renderMatrixView(); return; }
   if(e.target.closest('[data-action="delcat"]')){
     if(data.categories.length <= 1){ alert('Keep at least one category.'); return; }
     if(data.tasks.some(t=>t.categoryId===cat.id)){ alert('Move or delete that category\'s tasks first.'); return; }
     if(!confirm(`Delete category "${cat.name}"?`)) return;
     data.categories = data.categories.filter(c=>c.id!==cat.id);
-    save(); renderCatEditor(); renderTasksView(); renderWeekView();
+    save(); renderCatEditor(); renderTasksView(); renderWeekView(); renderMatrixView();
   }
 });
 el('catEditList').addEventListener('change', (e) => {
@@ -898,7 +1279,7 @@ el('catEditList').addEventListener('change', (e) => {
   if(!input) return;
   const row = e.target.closest('.cat-edit-row');
   const cat = catById(row.dataset.id);
-  if(cat && input.value.trim()){ cat.name = input.value.trim(); save(); renderTasksView(); renderWeekView(); }
+  if(cat && input.value.trim()){ cat.name = input.value.trim(); save(); renderTasksView(); renderWeekView(); renderMatrixView(); }
 });
 el('addCatBtn').onclick = () => {
   const name = prompt('Category name');
@@ -913,8 +1294,45 @@ el('resetDataBtn').onclick = () => {
   data = defaultData();
   save();
   el('settingsModal').classList.remove('show');
-  renderTodayView(); renderTasksView(); renderWeekView();
+  renderTodayView(); renderTasksView(); renderWeekView(); renderMatrixView();
 };
+
+/* ---- Backup: export / import ---- */
+el('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `unstuck-backup-${todayKey()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+el('importBtn').onclick = () => el('importFile').click();
+el('importFile').onchange = async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  try{
+    const parsed = JSON.parse(await file.text());
+    if(!parsed || !Array.isArray(parsed.categories) || !Array.isArray(parsed.tasks)){
+      throw new Error('That file doesn\'t look like an Unstuck backup.');
+    }
+    if(!confirm('This replaces everything currently in the app with the backup. Continue?')) return;
+    data = Object.assign(defaultData(), parsed);
+    save();
+    el('settingsModal').classList.remove('show');
+    renderTodayView(); renderTasksView(); renderWeekView(); renderMatrixView();
+  }catch(err){
+    alert('Could not import that file: ' + (err.message || err));
+  }
+};
+
+/* ---- Resources modal ---- */
+el('resourcesBtn').onclick = () => el('resourcesModal').classList.add('show');
+el('resourcesCloseBtn').onclick = () => el('resourcesModal').classList.remove('show');
+el('resourcesModal').addEventListener('click', (e) => { if(e.target.id==='resourcesModal') el('resourcesModal').classList.remove('show'); });
 
 /* ===================== Init ===================== */
 renderHeader();
