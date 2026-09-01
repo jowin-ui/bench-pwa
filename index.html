@@ -3,1030 +3,922 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B1F33">
+<meta name="theme-color" content="#FAF7F2">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>The Bench — Code Workbench</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Unstuck — Task Paralysis Helper</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap');
 
   :root{
-    --bg: #0B1F33;
-    --bg-grid: #123153;
-    --card: #102A43;
-    --card-hi: #163A57;
-    --line: #1E4368;
-    --ink: #E8F1F8;
-    --ink-dim: #7FA8C9;
-    --teal: #5EEAD4;
-    --coral: #E8927C;
-    --amber: #F0C36D;
+    --bg: #FAF7F2;
+    --card: #FFFFFF;
+    --card-soft: #F3EEE6;
+    --line: #E8E1D4;
+    --ink: #2B2A28;
+    --ink-dim: #86807A;
+    --ink-faint: #B4AEA5;
+    --accent: #D98E73;      /* terracotta — primary action */
+    --accent-ink: #6B3A26;
+    --sage: #7C9885;        /* Personal */
+    --blue: #5B8DB8;        /* Business */
+    --amber: #D9A441;       /* Home */
+    --rose: #C97B84;        /* Family */
+    --good: #6E9E75;
+    --radius: 16px;
+    --shadow: 0 6px 20px rgba(80,60,40,.08);
   }
-  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ height:100%; margin:0; overscroll-behavior:none; }
   body{
-    background:
-      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
-      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/28px 28px,
-      var(--bg);
-    color: var(--ink);
-    font-family: 'IBM Plex Sans', sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-  ::selection{ background: var(--teal); color: #06222A; }
-  button{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 11.5px; letter-spacing:.03em;
-    background: var(--card);
-    color: var(--ink);
-    border: 1px solid var(--line);
-    padding: 8px 10px;
-    cursor:pointer;
-    border-radius: 3px;
-  }
-  button:hover{ background: var(--card-hi); border-color: var(--teal); }
-  button.primary{ background: var(--teal); color:#06222A; border-color:var(--teal); font-weight:600; }
-  button.primary:hover{ filter: brightness(1.08); }
-  button.ghost{ background:transparent; border-color:transparent; }
-  button.danger:hover{ border-color: var(--coral); color: var(--coral); }
-  button:disabled{ opacity:.4; cursor:not-allowed; }
-
-  /* ---------- Lock screen ---------- */
-  #lock{
-    position:fixed; inset:0; z-index:100;
-    display:flex; align-items:center; justify-content:center;
     background: var(--bg);
-    flex-direction:column; padding: 24px;
+    color: var(--ink);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
   }
-  #lock .pin-card{
-    width: min(320px, 90vw);
-    background: var(--card); border:1px solid var(--line); border-radius:6px;
-    padding: 26px 22px; text-align:center;
-  }
-  #lock h1{ font-family:'IBM Plex Mono', monospace; font-size:16px; color:var(--teal); margin:0 0 6px; letter-spacing:.08em; text-transform:uppercase; }
-  #lock p{ font-size:12px; color:var(--ink-dim); margin: 0 0 18px; line-height:1.6; }
-  .pin-dots{ display:flex; gap:12px; justify-content:center; margin-bottom:18px; }
-  .pin-dot{ width:14px; height:14px; border-radius:50%; border:1px solid var(--line); background:transparent; }
-  .pin-dot.filled{ background: var(--teal); border-color:var(--teal); }
-  .pin-pad{ display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-bottom: 14px; }
-  .pin-pad button{ padding: 16px 0; font-size:16px; border-radius:6px; }
-  #biometricBtn{ width:100%; margin-top: 4px; }
-  #lockError{ color: var(--coral); font-size:11.5px; min-height:16px; margin-bottom:6px; }
+  h1,h2,h3,.serif{ font-family:'Fraunces', serif; }
+  button{ font-family:'Inter',sans-serif; cursor:pointer; }
+  input,select,textarea{ font-family:'Inter',sans-serif; }
+  ::selection{ background: var(--accent); color:#fff; }
 
-  /* ---------- App shell ---------- */
-  .app{ display:none; flex-direction:column; height:100vh; height:100dvh; }
-  .app.show{ display:flex; }
+  .app{ display:flex; flex-direction:column; height:100vh; height:100dvh; max-width:560px; margin:0 auto; position:relative; }
 
   #topbar{
     display:flex; align-items:center; gap:10px;
-    padding: max(12px, env(safe-area-inset-top)) 16px 10px;
-    border-bottom: 1px solid var(--line);
-    background: rgba(11,31,51,0.85);
+    padding: max(16px, env(safe-area-inset-top)) 18px 12px;
   }
-  #topbar .word{ font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:14px; letter-spacing:.08em; text-transform:uppercase; color: var(--teal); }
-  #topbar .spacer{ flex:1; }
+  #topbar h1{ margin:0; font-size:19px; font-weight:600; flex:1; }
+  #topbar .date{ font-size:11.5px; color:var(--ink-dim); display:block; margin-top:2px; font-family:'Inter',sans-serif; }
+  .icon-btn{
+    background: var(--card); border:1px solid var(--line); border-radius:50%;
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    font-size:16px; flex-shrink:0;
+  }
+  .icon-btn:active{ background: var(--card-soft); }
 
-  /* ---------- Carousel ---------- */
-  .carousel{
-    flex:1; display:flex; gap:14px; overflow-x:auto; overflow-y:hidden;
-    scroll-snap-type: x mandatory; -webkit-overflow-scrolling:touch;
-    padding: 14px 5%; scroll-padding: 0 5%;
-    min-height:0;
-  }
-  .carousel::-webkit-scrollbar{ display:none; }
-  .tab-card{
-    flex: 0 0 90%; scroll-snap-align:center;
-    background: var(--card); border:1px solid var(--line); border-radius:16px;
-    display:flex; flex-direction:column; overflow:hidden;
-    box-shadow: 0 10px 28px rgba(3,10,20,.5);
-    min-height:0;
-  }
-  .label-bar{
-    display:flex; align-items:center; gap:8px;
-    padding: 9px 10px; border-bottom:1px solid var(--line);
-    background: rgba(16,42,67,.9);
-  }
-  .label-bar .fname{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .icon-btn{ padding: 5px 8px; font-size:13px; line-height:1; }
-  .tab-card iframe{ flex:1; border:none; background:#fff; min-height:0; }
+  .views{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom: 90px; }
+  .view{ display:none; padding: 4px 18px 18px; }
+  .view.show{ display:block; }
 
-  .fc-tag{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.06em; padding: 2px 6px; border-radius:2px; white-space:nowrap; text-transform:uppercase; flex-shrink:0; }
-  .fc-tag.html{ background: rgba(94,234,212,.15); color: var(--teal); border:1px solid rgba(94,234,212,.4); }
-  .fc-tag.jsx{ background: rgba(240,195,109,.15); color: var(--amber); border:1px solid rgba(240,195,109,.4); }
-
-  .empty-carousel{
-    flex:1; display:flex; align-items:center; justify-content:center; text-align:center;
-    color: var(--ink-dim); font-size:13px; line-height:1.7; padding: 40px;
+  /* ---------- Buttons ---------- */
+  .btn{
+    border:1px solid var(--line); background:var(--card); color:var(--ink);
+    padding:10px 16px; border-radius:999px; font-size:13.5px; font-weight:500;
   }
+  .btn:active{ background:var(--card-soft); }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  .btn.primary:active{ filter:brightness(.95); }
+  .btn.ghost{ background:transparent; border-color:transparent; color:var(--ink-dim); }
+  .btn.small{ padding:6px 12px; font-size:12px; }
+  .btn.block{ width:100%; text-align:center; padding:13px; font-size:14.5px; }
+  .btn.danger{ color:#B4483A; }
+  .btn:disabled{ opacity:.45; }
 
-  /* ---------- Dots ---------- */
-  #dots{ display:flex; justify-content:center; align-items:center; gap:7px; padding: 4px 0 max(14px, env(safe-area-inset-bottom)); }
-  .dot{ width:7px; height:7px; border-radius:50%; background: var(--line); transition: all .15s ease; }
-  .dot.active{ background: var(--teal); width:20px; border-radius:5px; }
-
-  /* ---------- FAB ---------- */
-  #addTabBtn{
-    position:fixed; right:18px; bottom: max(70px, calc(env(safe-area-inset-bottom) + 58px));
-    width:52px; height:52px; border-radius:50%;
-    font-size:24px; font-weight:600; padding:0;
-    display:flex; align-items:center; justify-content:center;
-    box-shadow: 0 6px 18px rgba(0,0,0,.4); z-index:40;
+  /* ---------- Today view ---------- */
+  .hero{
+    background: linear-gradient(160deg, #FFFDF9, var(--card-soft));
+    border:1px solid var(--line); border-radius: 20px; padding:20px; margin: 8px 0 16px;
   }
-
-  /* ---------- Library bottom sheet ---------- */
-  .sheet-overlay{
-    position:fixed; inset:0; background: rgba(6,15,25,.7);
-    display:none; align-items:flex-end; justify-content:center; z-index:60;
+  .hero h2{ margin:0 0 4px; font-size:20px; }
+  .hero p{ margin:0 0 16px; color:var(--ink-dim); font-size:13px; line-height:1.55; }
+  .mode-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .mode-btn{
+    flex:1; border:1px solid var(--line); background:var(--card); border-radius:12px;
+    padding:10px 8px; font-size:12px; font-weight:600; color:var(--ink-dim); text-align:center;
   }
-  .sheet-overlay.show{ display:flex; }
-  .sheet{
-    width:100%; max-width:640px; max-height:80vh; overflow-y:auto;
-    background: var(--card); border:1px solid var(--line); border-bottom:none;
-    border-radius: 16px 16px 0 0; padding: 6px 16px calc(20px + env(safe-area-inset-bottom));
-  }
-  .sheet-handle{ width:36px; height:4px; background:var(--line); border-radius:3px; margin: 10px auto 14px; }
-  .sheet-top{ display:flex; align-items:center; gap:8px; margin-bottom:14px; }
-  .sheet-top h3{ margin:0; font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--teal); flex:1; }
-  .lib-row{ display:flex; align-items:center; gap:10px; padding: 11px 4px; border-bottom:1px dashed var(--line); }
-  .lib-row:last-child{ border-bottom:none; }
-  .lib-info{ flex:1; min-width:0; }
-  .lib-name{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:12.5px; word-break:break-word; }
-  .lib-meta{ font-size:10.5px; color:var(--ink-dim); margin-top:5px; display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; }
-  .lib-actions{ display:flex; gap:6px; flex-shrink:0; }
-  .empty-note{ color:var(--ink-dim); font-size:12.5px; padding: 18px 4px; line-height:1.6; }
+  .mode-btn.active{ background:#fff; border-color:var(--accent); color:var(--accent-ink); box-shadow: var(--shadow); }
+  .count-row{ display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:12.5px; color:var(--ink-dim); }
+  .stepper{ display:flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; }
+  .stepper button{ border:none; background:var(--card); padding:6px 13px; font-size:13px; font-weight:600; color:var(--ink); }
+  .stepper button.active{ background:var(--accent); color:#fff; }
 
-  /* ---------- Code editor overlay ---------- */
-  .code-overlay{ position:fixed; inset:0; background: var(--bg); z-index:80; display:none; flex-direction:column; }
-  .code-overlay.show{ display:flex; }
-  .code-header{ display:flex; align-items:center; gap:10px; padding: max(12px, env(safe-area-inset-top)) 16px 10px; border-bottom:1px solid var(--line); flex-wrap:wrap; background: rgba(11,31,51,0.85); }
-  .code-header .name{ font-family:'IBM Plex Mono', monospace; font-size:13.5px; font-weight:600; }
-  .code-header .spacer{ flex:1; }
-  textarea#codeArea{
-    flex:1; width:100%; resize:none; border:none; outline:none;
-    background: #0A1826; color: #D6E8F5;
-    font-family:'IBM Plex Mono', monospace; font-size:12.5px; line-height:1.6;
-    padding: 16px 18px;
+  .quick-capture{
+    display:flex; gap:8px; margin-bottom:18px;
   }
+  .quick-capture input{
+    flex:1; padding:12px 14px; border-radius:999px; border:1px solid var(--line);
+    background:var(--card); font-size:13.5px; color:var(--ink); outline:none;
+  }
+  .quick-capture input:focus{ border-color:var(--accent); }
+  .quick-capture button{ border-radius:999px; padding:0 16px; }
 
-  /* ---------- New-file modal ---------- */
-  .overlay{ position:fixed; inset:0; background: rgba(6,15,25,.7); display:none; align-items:center; justify-content:center; z-index:90; }
+  .section-label{ font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); font-weight:700; margin: 18px 2px 8px; }
+
+  .twomin-row{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:6px; }
+  .twomin-chip{
+    flex-shrink:0; display:flex; align-items:center; gap:6px;
+    background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:8px 12px 8px 8px; font-size:12.5px; white-space:nowrap;
+  }
+  .twomin-chip .cb{ width:18px; height:18px; border-radius:50%; border:1.5px solid var(--ink-faint); flex-shrink:0; }
+  .twomin-chip.done{ opacity:.5; text-decoration:line-through; }
+
+  .empty-hint{ color:var(--ink-dim); font-size:12.5px; padding:10px 2px; line-height:1.6; }
+
+  /* Picked task cards (flip-to-reveal) */
+  .pick-grid{ display:flex; flex-direction:column; gap:12px; margin-top:6px; }
+  .pick-card{ perspective:900px; }
+  .flip-face{
+    border-radius:16px; padding:16px; border:1px solid var(--line);
+  }
+  .flip-back{
+    background: repeating-linear-gradient(135deg, var(--card-soft), var(--card-soft) 8px, #EFE7D9 8px, #EFE7D9 16px);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px;
+    cursor:pointer; min-height:104px;
+  }
+  .flip-back .q{ font-family:'Fraunces',serif; font-size:26px; color:var(--ink-faint); }
+  .flip-back .tap{ font-size:11px; color:var(--ink-dim); font-weight:600; letter-spacing:.03em; }
+  .flip-front{
+    background:var(--card); box-shadow: var(--shadow);
+    display:flex; flex-direction:column; gap:10px;
+    animation: flipReveal .4s cubic-bezier(.2,.6,.3,1);
+  }
+  @keyframes flipReveal{
+    from{ transform: rotateY(90deg); opacity:0; }
+    to{ transform: rotateY(0deg); opacity:1; }
+  }
+  .flip-top{ display:flex; align-items:center; gap:8px; }
+  .cat-tag{ font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:999px; color:#fff; flex-shrink:0; }
+  .pick-title{ font-size:15.5px; font-weight:600; line-height:1.35; flex:1; }
+  .pick-title.done{ text-decoration:line-through; color:var(--ink-faint); }
+  .pick-mvp{ font-size:12px; color:var(--ink-dim); background:var(--card-soft); border-radius:10px; padding:8px 10px; line-height:1.5; }
+  .pick-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+
+  .shuffle-row{ display:flex; justify-content:center; margin-top:16px; }
+
+  /* ---------- Timer overlay ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(40,30,20,.45); display:none; align-items:center; justify-content:center; z-index:90; padding:20px; }
   .overlay.show{ display:flex; }
-  .modal{ width: min(560px, 92vw); max-height: 86vh; overflow-y:auto; background: var(--card); border:1px solid var(--line); border-radius:10px; padding: 20px 22px 22px; }
-  .modal h3{ margin:0 0 14px; font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--teal); }
-  .field{ margin-bottom: 12px; }
-  .field label{ display:block; font-size:11px; color:var(--ink-dim); margin-bottom:5px; font-family:'IBM Plex Mono', monospace; letter-spacing:.03em; }
-  .field input[type=text], .field select{
-    width:100%; padding: 8px 10px; background:#0A1826; border:1px solid var(--line); color:var(--ink);
-    border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:12.5px;
-  }
-  .field textarea{ width:100%; min-height: 200px; padding: 10px; background:#0A1826; border:1px solid var(--line); color:var(--ink); border-radius:3px; font-family:'IBM Plex Mono', monospace; font-size:12px; line-height:1.55; }
-  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
-  .hint{ font-size:11px; color: var(--ink-dim); margin-top:-6px; margin-bottom:12px; line-height:1.5; }
-  input[type=file]{ display:none; }
+  .timer-card{ width:min(340px,100%); background:var(--card); border-radius:22px; padding:28px 24px; text-align:center; box-shadow:0 20px 50px rgba(40,30,10,.25); }
+  .timer-card .task-name{ font-family:'Fraunces',serif; font-size:17px; margin:0 0 6px; }
+  .timer-card .mantra{ font-size:12.5px; color:var(--ink-dim); line-height:1.55; margin:0 0 18px; }
+  .timer-clock{ font-family:'Fraunces',serif; font-size:46px; font-weight:600; margin:6px 0 16px; color:var(--accent-ink); }
+  .timer-chips{ display:flex; gap:8px; justify-content:center; margin-bottom:18px; }
+  .timer-chips button{ border-radius:999px; border:1px solid var(--line); background:var(--card-soft); padding:6px 12px; font-size:12px; font-weight:600; }
+  .timer-chips button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .timer-actions{ display:flex; gap:8px; }
+  .timer-actions .btn{ flex:1; }
 
-  /* ---------- Full screen: hides chrome, cards go edge-to-edge but stay swipeable ---------- */
-  #exitFullscreenBtn{
-    position:fixed; top: max(12px, env(safe-area-inset-top)); right:12px; z-index:50; display:none;
-    background: rgba(16,42,67,.92); border-color: var(--teal); color: var(--teal);
-    padding: 8px 12px; border-radius: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  /* ---------- Tasks view ---------- */
+  .add-task-box{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin: 8px 0 18px; }
+  .add-task-box input[type=text]{ width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:13.5px; margin-bottom:8px; background:var(--bg); }
+  .add-task-row{ display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .add-task-row select{ border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:12.5px; background:var(--bg); color:var(--ink); }
+  .chk-label{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-dim); border:1px solid var(--line); border-radius:10px; padding:8px 10px; background:var(--bg); }
+
+  .cat-group{ margin-bottom:16px; }
+  .cat-head{ display:flex; align-items:center; gap:8px; margin: 0 2px 8px; }
+  .cat-dot{ width:9px; height:9px; border-radius:50%; }
+  .cat-head .name{ font-weight:700; font-size:13px; flex:1; }
+  .cat-head .count{ font-size:11.5px; color:var(--ink-faint); }
+
+  .task-row{ display:flex; align-items:flex-start; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:11px 12px; margin-bottom:8px; }
+  .task-check{ width:20px; height:20px; border-radius:50%; border:1.5px solid var(--ink-faint); flex-shrink:0; margin-top:1px; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; }
+  .task-check.done{ background:var(--good); border-color:var(--good); }
+  .task-body{ flex:1; min-width:0; }
+  .task-title{ font-size:13.5px; font-weight:500; line-height:1.4; }
+  .task-title.done{ text-decoration:line-through; color:var(--ink-faint); }
+  .task-meta{ display:flex; gap:6px; flex-wrap:wrap; margin-top:5px; }
+  .meta-pill{ font-size:10px; color:var(--ink-dim); background:var(--card-soft); border-radius:999px; padding:2px 8px; font-weight:600; }
+  .task-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .task-actions button{ background:none; border:none; font-size:14px; padding:4px; color:var(--ink-faint); }
+
+  .filter-row{ display:flex; gap:8px; margin: 4px 0 14px; }
+
+  /* ---------- Week view ---------- */
+  .day-card{ background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:10px; }
+  .day-card.today{ border-color:var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .day-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .day-head .dname{ font-weight:700; font-size:14px; }
+  .day-head .today-badge{ font-size:9.5px; font-weight:700; color:#fff; background:var(--accent); padding:2px 8px; border-radius:999px; letter-spacing:.03em; }
+  .day-head select{ margin-left:auto; border:1px solid var(--line); border-radius:999px; padding:5px 10px; font-size:11.5px; background:var(--bg); }
+  .day-tasks{ display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+  .day-task{ display:flex; align-items:center; gap:8px; font-size:12.5px; background:var(--card-soft); border-radius:10px; padding:7px 10px; }
+  .day-task .cat-dot{ flex-shrink:0; }
+  .day-task .t{ flex:1; }
+  .day-task button{ background:none; border:none; color:var(--ink-faint); font-size:13px; }
+  .day-empty{ font-size:12px; color:var(--ink-faint); padding:2px 2px 8px; }
+
+  /* ---------- Modals ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(40,30,20,.45); display:none; align-items:flex-end; justify-content:center; z-index:95; }
+  .modal-overlay.show{ display:flex; }
+  .modal{ width:100%; max-width:560px; max-height:82vh; overflow-y:auto; background:var(--card); border-radius:20px 20px 0 0; padding:18px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .modal h3{ margin:0 0 14px; font-size:15px; }
+  .modal-close-row{ display:flex; justify-content:flex-end; margin-bottom:-6px; }
+  .cat-edit-row{ border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:8px; }
+  .cat-edit-row .rename-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .cat-edit-row input[type=text]{ flex:1; border:1px solid var(--line); border-radius:10px; padding:8px 10px; font-size:13px; }
+  .swatch-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .swatch{ width:22px; height:22px; border-radius:50%; border:2px solid transparent; flex-shrink:0; }
+  .swatch.sel{ border-color:var(--ink); }
+
+  /* ---------- Bottom tabs ---------- */
+  #tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    max-width:560px; margin:0 auto;
+    display:flex; background:rgba(250,247,242,.92); backdrop-filter: blur(10px);
+    border-top:1px solid var(--line);
+    padding: 8px 8px max(8px, env(safe-area-inset-bottom));
   }
-  body.fullscreen-active #topbar,
-  body.fullscreen-active #dots,
-  body.fullscreen-active #addTabBtn,
-  body.fullscreen-active .label-bar{ display:none !important; }
-  body.fullscreen-active .carousel{ padding:0; gap:0; }
-  body.fullscreen-active .tab-card{ flex-basis:100%; border-radius:0; border:none; }
+  .tab-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+    background:none; border:none; padding:6px 4px; color:var(--ink-faint); font-size:10.5px; font-weight:600;
+  }
+  .tab-btn .ic{ font-size:19px; }
+  .tab-btn.active{ color:var(--accent-ink); }
 </style>
 </head>
 <body>
 
-<!-- LOCK SCREEN -->
-<div id="lock">
-  <div class="pin-card">
-    <h1>The Bench</h1>
-    <p id="lockSubtitle">Set a passcode to protect your saved code.</p>
-    <div class="pin-dots" id="pinDots"></div>
-    <div id="lockError"></div>
-    <div class="pin-pad" id="pinPad"></div>
-    <button id="biometricBtn" style="display:none;">Use Face ID / Fingerprint</button>
-  </div>
-</div>
-
-<!-- APP -->
-<div class="app" id="app">
+<div class="app">
   <div id="topbar">
-    <span class="word">The Bench</span>
-    <span class="spacer"></span>
-    <button id="libraryBtn" class="ghost" title="All files">📂 Library</button>
-    <button id="lockNowBtn" class="ghost" title="Lock now">🔒</button>
-  </div>
-
-  <div class="carousel" id="carousel"></div>
-  <div id="dots"></div>
-
-  <button id="addTabBtn" class="primary" title="Open a file">+</button>
-</div>
-
-<button id="exitFullscreenBtn">✕ Exit full screen</button>
-
-<!-- LIBRARY BOTTOM SHEET -->
-<div class="sheet-overlay" id="librarySheetOverlay">
-  <div class="sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-top">
-      <h3>Your files</h3>
-      <button id="newFromSheetBtn" class="primary">+ New</button>
-      <button id="importFromSheetBtn">Import</button>
-      <input type="file" id="importInput" multiple accept=".html,.htm,.jsx,.tsx,.js">
+    <div style="flex:1;">
+      <h1 id="greeting">Hi there</h1>
+      <span class="date" id="dateLabel"></span>
     </div>
-    <div id="libraryList"></div>
+    <button class="icon-btn" id="settingsBtn" title="Categories">⚙️</button>
+  </div>
+
+  <div class="views" id="views">
+
+    <!-- ============ TODAY ============ -->
+    <div class="view show" id="view-today">
+
+      <div class="hero">
+        <h2>Feeling stuck?</h2>
+        <p>You don't have to choose. Pick a mode and we'll choose <em>for</em> you — that's the whole trick.</p>
+
+        <div class="mode-row">
+          <button class="mode-btn active" data-mode="random" id="modeRandomBtn">🎲 Random pick</button>
+          <button class="mode-btn" data-mode="obt" id="modeObtBtn">🎯 One Big Thing</button>
+        </div>
+        <div class="count-row" id="countRow">
+          <span>How many?</span>
+          <div class="stepper">
+            <button data-count="3" class="active">3</button>
+            <button data-count="4">4</button>
+          </div>
+        </div>
+
+        <button class="btn primary block" id="pickBtn">Pick my tasks</button>
+      </div>
+
+      <div id="pickResults"></div>
+
+      <div class="shuffle-row" id="shuffleRow" style="display:none;">
+        <button class="btn" id="shuffleBtn">🔀 Shuffle again</button>
+      </div>
+
+      <div class="section-label">Quick 2-minute wins</div>
+      <p class="empty-hint" style="margin:-4px 0 8px;">If it takes less than two minutes, just knock it out now.</p>
+      <div id="twoMinRow"></div>
+
+      <div class="quick-capture" style="margin-top:22px;">
+        <input type="text" id="quickInput" placeholder="Dump something on your mind…">
+        <button class="btn primary" id="quickAddBtn">Add</button>
+      </div>
+    </div>
+
+    <!-- ============ TASKS ============ -->
+    <div class="view" id="view-tasks">
+      <div class="add-task-box">
+        <input type="text" id="taskTitleInput" placeholder="New task…">
+        <div class="add-task-row">
+          <select id="taskCategorySelect"></select>
+          <label class="chk-label"><input type="checkbox" id="taskTwoMinChk"> 2-min task</label>
+        </div>
+        <input type="text" id="taskMvpInput" placeholder="Smallest first step (optional) — e.g. \"open the doc\"">
+        <button class="btn primary block" id="addTaskBtn">Add task</button>
+      </div>
+
+      <div class="filter-row">
+        <button class="btn small active" id="filterActiveBtn">To do</button>
+        <button class="btn small" id="filterDoneBtn">Done</button>
+      </div>
+
+      <div id="taskListWrap"></div>
+    </div>
+
+    <!-- ============ WEEK ============ -->
+    <div class="view" id="view-week">
+      <p class="empty-hint" style="margin:8px 2px 4px;">Give each day a theme so unrelated tasks stop crowding into it, then drop specific tasks onto the days that fit.</p>
+      <div id="weekWrap"></div>
+    </div>
+
+  </div>
+
+  <div id="tabbar">
+    <button class="tab-btn active" data-view="today"><span class="ic">🎯</span>Today</button>
+    <button class="tab-btn" data-view="tasks"><span class="ic">📋</span>Tasks</button>
+    <button class="tab-btn" data-view="week"><span class="ic">🗓️</span>Week</button>
   </div>
 </div>
 
-<!-- CODE EDITOR OVERLAY -->
-<div class="code-overlay" id="codeOverlay">
-  <div class="code-header">
-    <button id="codeBackBtn" class="ghost">← Back</button>
-    <span class="fc-tag" id="codeTag"></span>
-    <span class="name" id="codeFname"></span>
-    <span class="spacer"></span>
-    <button id="codeRenameBtn" class="ghost">Rename</button>
-    <button id="codeExportBtn">Export</button>
-    <button id="codeDeleteBtn" class="danger">Delete</button>
+<!-- TIMER OVERLAY -->
+<div class="overlay" id="timerOverlay">
+  <div class="timer-card">
+    <div class="task-name" id="timerTaskName">Task</div>
+    <p class="mantra" id="timerMantra">Give yourself permission to do it badly. Momentum shows up once you cross the start line.</p>
+    <div class="timer-clock" id="timerClock">05:00</div>
+    <div class="timer-chips">
+      <button data-min="2">2m</button>
+      <button data-min="5" class="active">5m</button>
+      <button data-min="10">10m</button>
+    </div>
+    <div class="timer-actions">
+      <button class="btn" id="timerStopBtn">Stop</button>
+      <button class="btn primary" id="timerStartBtn">Start</button>
+    </div>
+    <div class="timer-actions" style="margin-top:8px;">
+      <button class="btn danger block" id="timerDoneBtn">Mark done ✓</button>
+    </div>
   </div>
-  <textarea id="codeArea" spellcheck="false"></textarea>
 </div>
 
-<!-- NEW FILE MODAL -->
-<div class="overlay" id="overlay">
+<!-- CATEGORY / SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <h3 id="modalTitle">New file</h3>
-    <div class="field">
-      <label>Name</label>
-      <input type="text" id="mName" placeholder="e.g. pricing-table">
-    </div>
-    <div class="field">
-      <label>Type</label>
-      <select id="mType">
-        <option value="html">HTML</option>
-        <option value="jsx">JSX (React component)</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Code</label>
-      <textarea id="mCode" placeholder="Paste or write code here..."></textarea>
-    </div>
-    <div class="hint" id="mHint"></div>
-    <div class="modal-actions">
-      <button class="ghost" id="mCancel">Cancel</button>
-      <button class="primary" id="mSave">Save &amp; open</button>
-    </div>
+    <div class="modal-close-row"><button class="icon-btn" id="settingsCloseBtn">✕</button></div>
+    <h3>Categories</h3>
+    <div id="catEditList"></div>
+    <button class="btn" id="addCatBtn" style="margin-top:6px;">+ Add category</button>
+    <h3 style="margin-top:22px;">Data</h3>
+    <button class="btn danger block" id="resetDataBtn">Erase all data</button>
+  </div>
+</div>
+
+<!-- SCHEDULE-TO-DAY PICKER -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal">
+    <div class="modal-close-row"><button class="icon-btn" id="scheduleCloseBtn">✕</button></div>
+    <h3>Add a task to this day</h3>
+    <div id="scheduleTaskList"></div>
   </div>
 </div>
 
 <script>
-/* ===================== Service worker registration ===================== */
+/* ===================== Service worker ===================== */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});
   });
 }
 
-/* ===================== IndexedDB storage layer ===================== */
-const DB_NAME = 'bench-db';
-const STORE = 'files';
-const KV_STORE = 'kv';
-let db;
+/* ===================== Storage layer ===================== */
+const LS_KEY = 'unstuck-data-v1';
+const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const DAY_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-function openDB(){
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 2);
-    req.onupgradeneeded = () => {
-      const d = req.result;
-      if(!d.objectStoreNames.contains(STORE)){
-        d.createObjectStore(STORE, { keyPath: 'id' });
-      }
-      if(!d.objectStoreNames.contains(KV_STORE)){
-        d.createObjectStore(KV_STORE, { keyPath: 'id' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-/* ---- kv helpers, back the window.storage shim used by previewed artifacts ---- */
-function kvGet(id){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(KV_STORE, 'readonly');
-    const req = tx.objectStore(KV_STORE).get(id);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-function kvSet(id, record){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(KV_STORE, 'readwrite');
-    tx.objectStore(KV_STORE).put({ id, ...record });
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-function kvDelete(id){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(KV_STORE, 'readwrite');
-    tx.objectStore(KV_STORE).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-function kvListKeys(prefixTag, userPrefix){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(KV_STORE, 'readonly');
-    const req = tx.objectStore(KV_STORE).getAll();
-    req.onsuccess = () => {
-      const rows = req.result || [];
-      const keys = rows
-        .filter(r => r.id.startsWith(prefixTag))
-        .map(r => r.key)
-        .filter(k => !userPrefix || k.startsWith(userPrefix));
-      resolve(keys);
-    };
-    req.onerror = () => reject(req.error);
-  });
-}
-
-/* Bridge: previewed HTML/JSX runs in a sandboxed iframe with no direct DB access.
-   It talks to window.storage (shimmed inside the iframe) via postMessage; this
-   listener performs the real IndexedDB work and posts the result back. */
-window.addEventListener('message', async (e) => {
-  const d = e.data;
-  if(!d || !d.__benchStorage || !e.source) return;
-  const { id, op, args } = d;
-  try{
-    const result = await handleStorageOp(op, args || {});
-    e.source.postMessage({ __benchStorageResponse: true, id, result }, '*');
-  }catch(err){
-    e.source.postMessage({ __benchStorageResponse: true, id, error: err.message || String(err) }, '*');
-  }
-});
-
-async function handleStorageOp(op, { key, value, shared, prefix }){
-  const tag = shared ? 'shared:' : 'priv:';
-  const storeId = tag + key;
-  if(op === 'get'){
-    const rec = await kvGet(storeId);
-    if(!rec) throw new Error('Key not found: ' + key);
-    return { key, value: rec.value, shared: !!shared };
-  }
-  if(op === 'set'){
-    await kvSet(storeId, { key, value, shared: !!shared });
-    return { key, value, shared: !!shared };
-  }
-  if(op === 'delete'){
-    const existed = await kvGet(storeId);
-    await kvDelete(storeId);
-    return { key, deleted: !!existed, shared: !!shared };
-  }
-  if(op === 'list'){
-    const keys = await kvListKeys(tag, prefix);
-    return { keys, prefix, shared: !!shared };
-  }
-  throw new Error('Unknown storage op: ' + op);
-}
-function dbGetAll(){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-}
-function dbPut(file){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(file);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-function dbDelete(id){
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-/* ===================== Lock screen: PIN + WebAuthn ===================== */
-const lockEl = document.getElementById('lock');
-const pinDotsEl = document.getElementById('pinDots');
-const pinPadEl = document.getElementById('pinPad');
-const lockErrorEl = document.getElementById('lockError');
-const lockSubtitleEl = document.getElementById('lockSubtitle');
-const biometricBtn = document.getElementById('biometricBtn');
-
-const PIN_LEN = 4;
-let pinBuffer = '';
-let mode = null; // 'setup' | 'confirm' | 'unlock'
-let firstPinEntry = '';
-
-async function sha256(text){
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-function renderDots_pin(){
-  pinDotsEl.innerHTML = '';
-  for(let i=0;i<PIN_LEN;i++){
-    const d = document.createElement('div');
-    d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
-    pinDotsEl.appendChild(d);
-  }
-}
-function buildPad(){
-  pinPadEl.innerHTML = '';
-  const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
-  keys.forEach(k => {
-    const b = document.createElement('button');
-    b.textContent = k;
-    if(k === ''){ b.style.visibility = 'hidden'; }
-    b.onclick = () => handleKey(k);
-    pinPadEl.appendChild(b);
-  });
-}
-function handleKey(k){
-  lockErrorEl.textContent = '';
-  if(k === '⌫'){ pinBuffer = pinBuffer.slice(0,-1); renderDots_pin(); return; }
-  if(k === '' || pinBuffer.length >= PIN_LEN) return;
-  pinBuffer += k;
-  renderDots_pin();
-  if(pinBuffer.length === PIN_LEN) setTimeout(submitPin, 150);
-}
-
-async function submitPin(){
-  if(mode === 'setup'){
-    firstPinEntry = pinBuffer;
-    pinBuffer = '';
-    renderDots_pin();
-    mode = 'confirm';
-    lockSubtitleEl.textContent = 'Enter it again to confirm.';
-    return;
-  }
-  if(mode === 'confirm'){
-    if(pinBuffer !== firstPinEntry){
-      lockErrorEl.textContent = "Passcodes didn't match — try again.";
-      pinBuffer = ''; firstPinEntry=''; renderDots_pin();
-      mode = 'setup';
-      lockSubtitleEl.textContent = 'Set a passcode to protect your saved code.';
-      return;
-    }
-    const hash = await sha256(pinBuffer);
-    localStorage.setItem('bench-pin-hash', hash);
-    unlockApp();
-    return;
-  }
-  if(mode === 'unlock'){
-    const hash = await sha256(pinBuffer);
-    const stored = localStorage.getItem('bench-pin-hash');
-    if(hash === stored){
-      unlockApp();
-    } else {
-      lockErrorEl.textContent = 'Wrong passcode.';
-      pinBuffer = ''; renderDots_pin();
-    }
-  }
-}
-
-function startLockFlow(){
-  buildPad();
-  const stored = localStorage.getItem('bench-pin-hash');
-  pinBuffer = '';
-  if(stored){
-    mode = 'unlock';
-    lockSubtitleEl.textContent = 'Enter your passcode.';
-    maybeShowBiometric();
-  } else {
-    mode = 'setup';
-    lockSubtitleEl.textContent = 'Set a 4-digit passcode to protect your saved code.';
-  }
-  renderDots_pin();
-}
-
-function unlockApp(){
-  lockEl.style.display = 'none';
-  document.getElementById('app').classList.add('show');
-  loadFiles();
-}
-
-document.getElementById('lockNowBtn').onclick = () => {
-  document.getElementById('app').classList.remove('show');
-  lockEl.style.display = 'flex';
-  mode = 'unlock';
-  pinBuffer = '';
-  lockSubtitleEl.textContent = 'Enter your passcode.';
-  lockErrorEl.textContent = '';
-  renderDots_pin();
-  buildPad();
-  maybeShowBiometric();
-};
-
-/* Optional: WebAuthn (Face ID / fingerprint) as a faster unlock, layered on top of the PIN. */
-async function maybeShowBiometric(){
-  if(!window.PublicKeyCredential) return;
-  const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false);
-  if(!available) return;
-  biometricBtn.style.display = 'block';
-}
-biometricBtn.onclick = async () => {
-  try{
-    let credId = localStorage.getItem('bench-webauthn-id');
-    if(!credId){
-      const cred = await navigator.credentials.create({
-        publicKey: {
-          challenge: crypto.getRandomValues(new Uint8Array(32)),
-          rp: { name: 'The Bench' },
-          user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'bench-user', displayName: 'Bench User' },
-          pubKeyCredParams: [{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
-          authenticatorSelection: { userVerification: 'required', authenticatorAttachment: 'platform' },
-          timeout: 60000
-        }
-      });
-      localStorage.setItem('bench-webauthn-id', cred.id);
-      unlockApp();
-      return;
-    }
-    await navigator.credentials.get({
-      publicKey: {
-        challenge: crypto.getRandomValues(new Uint8Array(32)),
-        userVerification: 'required',
-        timeout: 60000
-      }
-    });
-    unlockApp();
-  }catch(e){
-    lockErrorEl.textContent = 'Biometric unlock failed — use your passcode.';
-  }
-};
-
-startLockFlow();
-
-/* ===================== Library / CDN globals / JSX preview ===================== */
-const el = (id) => document.getElementById(id);
-const JSX_HINT = 'JSX files run through Babel + React in the preview. Define a component (e.g. "function App(){...}") and end with "export default App;" — imports of react/react-dom are stripped automatically.';
-const HTML_HINT = 'Full HTML documents run as-is in a sandboxed preview frame.';
-
-const LIB_GLOBALS = {
-  'react': 'React',
-  'lucide-react': 'LucideReact',
-  'recharts': 'Recharts',
-  'lodash': '_',
-  'papaparse': 'Papa',
-  'xlsx': 'XLSX',
-  'd3': 'd3',
-  'mathjs': 'math',
-  'tone': 'Tone',
-  'three': 'THREE',
-  'chart.js': 'Chart'
-};
-
-const LIB_SCRIPTS = `
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
-<script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"><\/script>
-<script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"><\/script>
-`;
-
-function transformImports(code){
-  const importRe = /^\s*import\s+([^;]+?)\s+from\s+['"]([^'"]+)['"];?\s*$/gm;
-  const unresolved = [];
-  const transformed = code.replace(importRe, (match, clause, mod) => {
-    const key = mod.toLowerCase();
-    const globalName = LIB_GLOBALS[key];
-    if(!globalName){ unresolved.push(mod); return `/* stripped: import from "${mod}" not available in preview */`; }
-    clause = clause.trim();
-    if(clause.startsWith('{')){
-      return `const ${clause} = ${globalName};`;
-    }
-    if(clause.startsWith('*')){
-      const m = clause.match(/\*\s+as\s+(\w+)/);
-      const ns = m ? m[1] : key.replace(/[^a-zA-Z0-9_]/g,'_');
-      return `const ${ns} = ${globalName};`;
-    }
-    const defName = clause.split(',')[0].trim();
-    return `const ${defName} = ${globalName};`;
-  });
-  return { transformed, unresolved };
-}
-
-const STORAGE_SHIM = `
-<script>
-window.storage = (function(){
-  let reqId = 0;
-  const pending = {};
-  window.addEventListener('message', (e) => {
-    const d = e.data;
-    if(d && d.__benchStorageResponse && pending[d.id]){
-      const p = pending[d.id];
-      delete pending[d.id];
-      if(d.error) p.reject(new Error(d.error));
-      else p.resolve(d.result);
-    }
-  });
-  function call(op, args){
-    return new Promise((resolve, reject) => {
-      const id = ++reqId;
-      pending[id] = { resolve, reject };
-      window.parent.postMessage({ __benchStorage: true, id, op, args }, '*');
-    });
-  }
+function defaultData(){
   return {
-    get: (key, shared) => call('get', { key, shared: !!shared }),
-    set: (key, value, shared) => call('set', { key, value, shared: !!shared }),
-    delete: (key, shared) => call('delete', { key, shared: !!shared }),
-    list: (prefix, shared) => call('list', { prefix, shared: !!shared })
+    categories: [
+      { id:'business', name:'Business', color: getCssVar('--blue') },
+      { id:'home',     name:'Home',     color: getCssVar('--amber') },
+      { id:'family',   name:'Family',   color: getCssVar('--rose') },
+      { id:'personal', name:'Personal', color: getCssVar('--sage') }
+    ],
+    tasks: [],
+    weekThemes: {0:null,1:null,2:null,3:null,4:null,5:null,6:null},
+    todayPick: null // { date:'YYYY-MM-DD', mode, taskIds:[...], flipped:{} }
   };
-})();
-<\/script>
-`;
-
-function buildJsxDoc(code){
-  const { transformed, unresolved } = transformImports(code);
-  const cleaned = transformed.replace(/export\s+default\s+/, 'window.__WB_App = ');
-  const warn = unresolved.length
-    ? `console.warn('Bench preview: no CDN mapping for: ${unresolved.join(', ').replace(/'/g,"\\'")}. Those imports were stripped.');`
-    : '';
-
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-${LIB_SCRIPTS}
-${STORAGE_SHIM}
-<style>html,body{margin:0;padding:0;font-family:sans-serif;}#root{min-height:100vh;}</style>
-</head><body>
-<div id="root"></div>
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef, useMemo, useCallback, useReducer, useContext, createContext } = React;
-${warn}
-try {
-${cleaned}
-  const rootEl = document.getElementById('root');
-  const root = ReactDOM.createRoot(rootEl);
-  if (typeof window.__WB_App !== 'undefined') {
-    root.render(React.createElement(window.__WB_App));
-  } else {
-    rootEl.innerHTML = '<div style="padding:24px;font-family:monospace;color:#b00">No default export found. End your file with: export default ComponentName;</div>';
-  }
-} catch (err) {
-  document.getElementById('root').innerHTML = '<pre style="padding:24px;color:#b00;white-space:pre-wrap;font-family:monospace;">' + err.message + '</pre>';
 }
-<\/script>
-</body></html>`;
-}
-function docFor(f){
-  return f.type === 'html' ? (STORAGE_SHIM + f.code) : buildJsxDoc(f.code);
+function getCssVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#999';
 }
 
-/* ===================== File store + open tabs ===================== */
-let files = [];             // every saved file: {id,name,type,code,createdAt,updatedAt,open,tabIndex}
-let currentCardIndex = 0;   // which open tab is centered in the carousel
-let codeEditingId = null;
-
-function uid(){ return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let data = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return defaultData();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultData(), parsed);
+  }catch(e){ return defaultData(); }
 }
-function timeAgo(ts){
-  const s = Math.floor((Date.now()-ts)/1000);
-  if(s<60) return 'just now';
-  if(s<3600) return Math.floor(s/60)+'m ago';
-  if(s<86400) return Math.floor(s/3600)+'h ago';
-  return Math.floor(s/86400)+'d ago';
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+
+function uid(){ return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-function openFilesSorted(){
-  return files.filter(f => f.open).sort((a,b) => (a.tabIndex ?? 0) - (b.tabIndex ?? 0));
+function todayDayIndex(){
+  const js = new Date().getDay(); // 0=Sun..6=Sat
+  return js === 0 ? 6 : js - 1;   // 0=Mon..6=Sun
 }
+function catById(id){ return data.categories.find(c=>c.id===id); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-async function loadFiles(){
-  db = await openDB();
-  files = await dbGetAll();
-  renderCarousel();
+/* ===================== Header ===================== */
+function renderHeader(){
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  el('greeting').textContent = greet;
+  el('dateLabel').textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
 }
+const el = (id) => document.getElementById(id);
 
-/* ---- Carousel (swipeable tab cards) ---- */
-function renderCarousel(){
-  const carousel = el('carousel');
-  const dotsEl = el('dots');
-  const openList = openFilesSorted();
-
-  if(openList.length === 0){
-    carousel.innerHTML = '<div class="empty-carousel">No tabs open yet.<br>Tap the <strong>+</strong> button to open a saved file, or add a new one.</div>';
-    dotsEl.innerHTML = '';
-    return;
-  }
-
-  carousel.innerHTML = openList.map(f => `
-    <div class="tab-card" data-id="${f.id}">
-      <div class="label-bar">
-        <span class="fc-tag ${f.type}">${f.type}</span>
-        <span class="fname">${escapeHtml(f.name)}</span>
-        <button class="icon-btn ghost" data-action="code" title="View code">&lt;/&gt;</button>
-        <button class="icon-btn ghost" data-action="fullscreen" title="Full screen">⛶</button>
-        <button class="icon-btn ghost" data-action="close" title="Close tab">✕</button>
-      </div>
-      <iframe data-frame="${f.id}" sandbox="allow-scripts allow-modals" srcdoc=""></iframe>
-    </div>
-  `).join('');
-
-  dotsEl.innerHTML = openList.map((f,i) => `<div class="dot${i===0?' active':''}" data-idx="${i}"></div>`).join('');
-
-  openList.forEach(f => {
-    const frame = carousel.querySelector(`iframe[data-frame="${f.id}"]`);
-    if(frame) frame.srcdoc = docFor(f);
-  });
-
-  if(currentCardIndex >= openList.length) currentCardIndex = Math.max(0, openList.length - 1);
+/* ===================== Tabs ===================== */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => switchView(btn.dataset.view);
+});
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('show'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view===name));
+  el('view-' + name).classList.add('show');
+  if(name==='tasks') renderTasksView();
+  if(name==='week') renderWeekView();
+  if(name==='today') renderTodayView();
 }
 
-el('carousel').addEventListener('click', (e) => {
-  const btn = e.target.closest('.icon-btn');
-  if(!btn) return;
-  const card = e.target.closest('.tab-card');
-  const id = card.dataset.id;
-  const action = btn.dataset.action;
-  if(action === 'close') closeTab(id);
-  if(action === 'code') openCodeEditor(id);
-  if(action === 'fullscreen'){
-    const idx = [...card.parentElement.children].indexOf(card);
-    currentCardIndex = idx;
-    enterFullscreen();
-  }
+/* ===================== TODAY VIEW ===================== */
+let pickMode = 'random';
+let pickCount = 3;
+
+el('modeRandomBtn').onclick = () => setPickMode('random');
+el('modeObtBtn').onclick = () => setPickMode('obt');
+function setPickMode(m){
+  pickMode = m;
+  el('modeRandomBtn').classList.toggle('active', m==='random');
+  el('modeObtBtn').classList.toggle('active', m==='obt');
+  el('countRow').style.display = m==='random' ? 'flex' : 'none';
+}
+document.querySelectorAll('.stepper button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.stepper button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    pickCount = +b.dataset.count;
+  };
 });
 
-let scrollTicking = false;
-el('carousel').addEventListener('scroll', () => {
-  if(scrollTicking) return;
-  scrollTicking = true;
-  requestAnimationFrame(() => {
-    const carousel = el('carousel');
-    const cards = [...carousel.querySelectorAll('.tab-card')];
-    if(cards.length){
-      const mid = carousel.scrollLeft + carousel.clientWidth/2;
-      let closest = 0, closestDist = Infinity;
-      cards.forEach((c,i) => {
-        const cMid = c.offsetLeft + c.offsetWidth/2;
-        const dist = Math.abs(cMid - mid);
-        if(dist < closestDist){ closestDist = dist; closest = i; }
-      });
-      currentCardIndex = closest;
-      document.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('active', i===closest));
+el('pickBtn').onclick = () => {
+  const ids = generatePicks(pickMode, pickCount);
+  data.todayPick = { date: todayKey(), mode: pickMode, taskIds: ids, flipped: {} };
+  save();
+  renderPickResults();
+};
+el('shuffleBtn').onclick = () => {
+  const ids = generatePicks(pickMode, pickCount);
+  data.todayPick = { date: todayKey(), mode: pickMode, taskIds: ids, flipped: {} };
+  save();
+  renderPickResults();
+};
+
+function incompleteTasks(){ return data.tasks.filter(t => !t.done); }
+
+function generatePicks(mode, count){
+  const pool = incompleteTasks();
+  const dIdx = todayDayIndex();
+  const scheduledToday = shuffle(pool.filter(t => t.day === dIdx));
+  const theme = data.weekThemes[dIdx];
+
+  if(mode === 'obt'){
+    // One per category (Business/Home/Family/Personal-style OBT rule)
+    const picks = [];
+    for(const cat of data.categories){
+      const inCat = pool.filter(t => t.categoryId === cat.id);
+      if(!inCat.length) continue;
+      const scheduled = inCat.filter(t => t.day === dIdx);
+      const chosenFrom = scheduled.length ? scheduled : inCat;
+      picks.push(chosenFrom[Math.floor(Math.random()*chosenFrom.length)]);
     }
-    scrollTicking = false;
-  });
-});
-
-el('dots').addEventListener('click', (e) => {
-  const dot = e.target.closest('.dot');
-  if(!dot) return;
-  const idx = +dot.dataset.idx;
-  const cards = el('carousel').querySelectorAll('.tab-card');
-  if(cards[idx]) cards[idx].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' });
-});
-
-async function closeTab(id){
-  const f = files.find(x=>x.id===id);
-  if(!f) return;
-  f.open = false;
-  await dbPut(f);
-  renderCarousel();
-}
-
-async function openTab(id){
-  const f = files.find(x=>x.id===id);
-  if(!f) return;
-  if(!f.open){
-    const maxIdx = Math.max(-1, ...files.filter(x=>x.open).map(x => x.tabIndex ?? 0));
-    f.open = true;
-    f.tabIndex = maxIdx + 1;
-    await dbPut(f);
+    return shuffle(picks).slice(0,4).map(t=>t.id);
   }
-  renderCarousel();
-  closeLibrarySheet();
-  requestAnimationFrame(() => {
-    const card = el('carousel').querySelector(`.tab-card[data-id="${id}"]`);
-    if(card) card.scrollIntoView({ inline:'center', block:'nearest' });
-  });
+
+  // random mode: scheduled-today tasks first, then theme-matching, then anything
+  const picks = [];
+  const used = new Set();
+  const take = (arr) => {
+    for(const t of arr){
+      if(picks.length >= count) break;
+      if(used.has(t.id)) continue;
+      picks.push(t); used.add(t.id);
+    }
+  };
+  take(scheduledToday);
+  if(theme) take(shuffle(pool.filter(t => t.categoryId === theme)));
+  take(shuffle(pool));
+  return picks.map(t=>t.id);
+}
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
 }
 
-/* ---- Full screen: hides chrome; cards go edge-to-edge, still swipeable ---- */
-function enterFullscreen(){
-  document.body.classList.add('fullscreen-active');
-  el('exitFullscreenBtn').style.display = 'block';
-  requestAnimationFrame(() => {
-    const cards = el('carousel').querySelectorAll('.tab-card');
-    if(cards[currentCardIndex]) cards[currentCardIndex].scrollIntoView({ inline:'center', block:'nearest' });
-  });
+function renderTodayView(){
+  renderHeader();
+  renderPickResults();
+  renderTwoMinRow();
 }
-function exitFullscreen(){
-  document.body.classList.remove('fullscreen-active');
-  el('exitFullscreenBtn').style.display = 'none';
-  requestAnimationFrame(() => {
-    const cards = el('carousel').querySelectorAll('.tab-card');
-    if(cards[currentCardIndex]) cards[currentCardIndex].scrollIntoView({ inline:'center', block:'nearest' });
-  });
-}
-el('exitFullscreenBtn').onclick = exitFullscreen;
 
-/* ---- Library bottom sheet: every saved file, open/import/delete ---- */
-function renderLibrary(){
-  const body = el('libraryList');
-  if(files.length === 0){
-    body.innerHTML = '<div class="empty-note">No files saved yet. Use "+ New" or "Import" above.</div>';
+function renderPickResults(){
+  const wrap = el('pickResults');
+  const tp = data.todayPick;
+  const valid = tp && tp.date === todayKey() && tp.taskIds.length;
+  if(!valid){
+    wrap.innerHTML = '';
+    el('shuffleRow').style.display = 'none';
     return;
   }
-  const sorted = [...files].sort((a,b) => b.updatedAt - a.updatedAt);
-  body.innerHTML = sorted.map(f => `
-    <div class="lib-row" data-id="${f.id}">
-      <div class="lib-info">
-        <div class="lib-name">${escapeHtml(f.name)}</div>
-        <div class="lib-meta"><span class="fc-tag ${f.type}">${f.type}</span> ${f.code.split('\n').length} lines · ${timeAgo(f.updatedAt)}</div>
+  const tasks = tp.taskIds.map(id => data.tasks.find(t=>t.id===id)).filter(Boolean);
+  if(!tasks.length){
+    wrap.innerHTML = '<p class="empty-hint">Nothing left in that batch — shuffle for more, or add tasks in the Tasks tab.</p>';
+    el('shuffleRow').style.display = 'flex';
+    return;
+  }
+  el('shuffleRow').style.display = 'flex';
+  wrap.innerHTML = '<div class="pick-grid">' + tasks.map((t,i) => {
+    const cat = catById(t.categoryId);
+    const flipped = !!tp.flipped[t.id];
+    if(!flipped){
+      return `
+      <div class="pick-card" data-id="${t.id}">
+        <div class="flip-face flip-back" data-flip="${t.id}">
+          <div class="q">?</div>
+          <div class="tap">Tap to reveal</div>
+        </div>
+      </div>`;
+    }
+    return `
+    <div class="pick-card flipped" data-id="${t.id}">
+      <div class="flip-face flip-front">
+        <div class="flip-top">
+          <span class="cat-tag" style="background:${cat?cat.color:'#999'}">${cat?escapeHtml(cat.name):'—'}</span>
+          <span class="pick-title${t.done?' done':''}">${escapeHtml(t.title)}</span>
+        </div>
+        ${t.mvp ? `<div class="pick-mvp">First step: ${escapeHtml(t.mvp)}</div>` : ''}
+        <div class="pick-actions">
+          <button class="btn small primary" data-action="timer" data-id="${t.id}">⏱ 5-min timer</button>
+          <button class="btn small" data-action="done" data-id="${t.id}">${t.done?'Undo':'Done ✓'}</button>
+          <button class="btn small ghost" data-action="swap" data-id="${t.id}">🔀 Swap</button>
+        </div>
       </div>
-      <div class="lib-actions">
-        <button class="primary" data-action="open">${f.open ? 'Jump to' : 'Open'}</button>
-        <button class="danger" data-action="delete">Delete</button>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+el('pickResults').addEventListener('click', (e) => {
+  const flipEl = e.target.closest('[data-flip]');
+  if(flipEl){
+    const id = flipEl.dataset.flip;
+    data.todayPick.flipped[id] = true;
+    save();
+    renderPickResults();
+    return;
+  }
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  if(action === 'timer') openTimer(id);
+  if(action === 'done') toggleDone(id, () => { renderPickResults(); renderTwoMinRow(); });
+  if(action === 'swap') swapPick(id);
+});
+
+function swapPick(id){
+  const tp = data.todayPick;
+  if(!tp) return;
+  const pool = incompleteTasks().filter(t => !tp.taskIds.includes(t.id));
+  if(!pool.length) return;
+  const replacement = pool[Math.floor(Math.random()*pool.length)];
+  const idx = tp.taskIds.indexOf(id);
+  if(idx === -1) return;
+  tp.taskIds[idx] = replacement.id;
+  delete tp.flipped[id];
+  save();
+  renderPickResults();
+}
+
+function renderTwoMinRow(){
+  const row = el('twoMinRow');
+  const items = incompleteTasks().filter(t => t.twoMin);
+  if(!items.length){
+    row.innerHTML = '<p class="empty-hint">No quick wins queued — flag a task as "2-min" in the Tasks tab.</p>';
+    return;
+  }
+  row.innerHTML = '<div class="twomin-row">' + items.map(t => `
+    <div class="twomin-chip" data-id="${t.id}">
+      <span class="cb"></span>${escapeHtml(t.title)}
+    </div>`).join('') + '</div>';
+  row.querySelectorAll('.twomin-chip').forEach(chip => {
+    chip.onclick = () => toggleDone(chip.dataset.id, () => { renderTwoMinRow(); renderPickResults(); });
+  });
+}
+
+function toggleDone(id, cb){
+  const t = data.tasks.find(x=>x.id===id);
+  if(!t) return;
+  t.done = !t.done;
+  t.doneAt = t.done ? Date.now() : null;
+  save();
+  cb && cb();
+}
+
+/* ---- Quick capture ---- */
+el('quickAddBtn').onclick = quickAdd;
+el('quickInput').addEventListener('keydown', e => { if(e.key==='Enter') quickAdd(); });
+function quickAdd(){
+  const input = el('quickInput');
+  const title = input.value.trim();
+  if(!title) return;
+  data.tasks.push({
+    id: uid(), title, categoryId: data.categories[0].id, day: null,
+    twoMin: false, mvp: '', done:false, doneAt:null, createdAt: Date.now()
+  });
+  save();
+  input.value = '';
+  renderTwoMinRow();
+}
+
+/* ===================== Timer overlay ===================== */
+let timerInterval = null;
+let timerSeconds = 5*60;
+let timerTaskId = null;
+
+function openTimer(id){
+  const t = data.tasks.find(x=>x.id===id);
+  if(!t) return;
+  timerTaskId = id;
+  el('timerTaskName').textContent = t.title;
+  document.querySelectorAll('.timer-chips button').forEach(b => b.classList.toggle('active', b.dataset.min==='5'));
+  timerSeconds = 5*60;
+  updateTimerClock();
+  stopTimerInterval();
+  el('timerStartBtn').textContent = 'Start';
+  el('timerOverlay').classList.add('show');
+}
+document.querySelectorAll('.timer-chips button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.timer-chips button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    timerSeconds = (+b.dataset.min)*60;
+    updateTimerClock();
+    stopTimerInterval();
+    el('timerStartBtn').textContent = 'Start';
+  };
+});
+function updateTimerClock(){
+  const m = Math.floor(timerSeconds/60), s = timerSeconds%60;
+  el('timerClock').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+el('timerStartBtn').onclick = () => {
+  if(timerInterval){ stopTimerInterval(); el('timerStartBtn').textContent = 'Start'; return; }
+  el('timerStartBtn').textContent = 'Pause';
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    if(timerSeconds <= 0){
+      timerSeconds = 0;
+      updateTimerClock();
+      stopTimerInterval();
+      el('timerMantra').textContent = "Time's up — you crossed the start line, that was the hard part. Keep going or take a break.";
+      el('timerStartBtn').textContent = 'Start';
+      return;
+    }
+    updateTimerClock();
+  }, 1000);
+};
+function stopTimerInterval(){ if(timerInterval){ clearInterval(timerInterval); timerInterval=null; } }
+el('timerStopBtn').onclick = () => { el('timerOverlay').classList.remove('show'); stopTimerInterval(); };
+el('timerDoneBtn').onclick = () => {
+  if(timerTaskId) toggleDone(timerTaskId, () => { renderPickResults(); renderTwoMinRow(); renderTasksView(); });
+  el('timerOverlay').classList.remove('show');
+  stopTimerInterval();
+};
+
+/* ===================== TASKS VIEW ===================== */
+let taskFilter = 'active';
+el('filterActiveBtn').onclick = () => { taskFilter='active'; el('filterActiveBtn').classList.add('active'); el('filterDoneBtn').classList.remove('active'); renderTasksView(); };
+el('filterDoneBtn').onclick = () => { taskFilter='done'; el('filterDoneBtn').classList.add('active'); el('filterActiveBtn').classList.remove('active'); renderTasksView(); };
+
+function refreshCategorySelect(){
+  el('taskCategorySelect').innerHTML = data.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+}
+
+el('addTaskBtn').onclick = () => {
+  const title = el('taskTitleInput').value.trim();
+  if(!title){ el('taskTitleInput').focus(); return; }
+  data.tasks.push({
+    id: uid(), title,
+    categoryId: el('taskCategorySelect').value,
+    day: null,
+    twoMin: el('taskTwoMinChk').checked,
+    mvp: el('taskMvpInput').value.trim(),
+    done:false, doneAt:null, createdAt: Date.now()
+  });
+  save();
+  el('taskTitleInput').value = '';
+  el('taskMvpInput').value = '';
+  el('taskTwoMinChk').checked = false;
+  renderTasksView();
+};
+
+function renderTasksView(){
+  refreshCategorySelect();
+  const wrap = el('taskListWrap');
+  const list = data.tasks.filter(t => taskFilter==='active' ? !t.done : t.done);
+  if(!list.length){
+    wrap.innerHTML = `<p class="empty-hint">${taskFilter==='active' ? 'Nothing on the list yet — add something above, even something small.' : 'Nothing marked done yet.'}</p>`;
+    return;
+  }
+  wrap.innerHTML = data.categories.map(cat => {
+    const items = list.filter(t => t.categoryId === cat.id);
+    if(!items.length) return '';
+    return `
+    <div class="cat-group">
+      <div class="cat-head"><span class="cat-dot" style="background:${cat.color}"></span><span class="name">${escapeHtml(cat.name)}</span><span class="count">${items.length}</span></div>
+      ${items.map(t => taskRowHtml(t)).join('')}
+    </div>`;
+  }).join('');
+}
+function taskRowHtml(t){
+  const dayLabel = t.day!=null ? DAY_SHORT[t.day] : null;
+  return `
+  <div class="task-row" data-id="${t.id}">
+    <div class="task-check${t.done?' done':''}" data-action="check">${t.done?'✓':''}</div>
+    <div class="task-body">
+      <div class="task-title${t.done?' done':''}">${escapeHtml(t.title)}</div>
+      <div class="task-meta">
+        ${t.twoMin ? '<span class="meta-pill">2-min</span>' : ''}
+        ${dayLabel ? `<span class="meta-pill">📅 ${dayLabel}</span>` : ''}
+        ${t.mvp ? `<span class="meta-pill">→ ${escapeHtml(t.mvp)}</span>` : ''}
       </div>
     </div>
-  `).join('');
+    <div class="task-actions">
+      <button data-action="edit" title="Edit">✎</button>
+      <button data-action="delete" title="Delete">🗑</button>
+    </div>
+  </div>`;
 }
-el('libraryList').addEventListener('click', (e) => {
-  const btn = e.target.closest('button');
-  if(!btn) return;
-  const row = e.target.closest('.lib-row');
+el('taskListWrap').addEventListener('click', (e) => {
+  const row = e.target.closest('.task-row');
+  if(!row) return;
   const id = row.dataset.id;
-  if(btn.dataset.action === 'open') openTab(id);
-  if(btn.dataset.action === 'delete') deleteFromLibrary(id);
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const action = btn.dataset.action;
+  if(action==='check') toggleDone(id, renderTasksView);
+  if(action==='delete') deleteTask(id);
+  if(action==='edit') editTask(id);
 });
-async function deleteFromLibrary(id){
-  const f = files.find(x=>x.id===id);
-  if(!f) return;
-  if(!confirm(`Delete "${f.name}"? This can't be undone.`)) return;
-  await dbDelete(id);
-  files = files.filter(x=>x.id!==id);
-  renderCarousel();
-  renderLibrary();
+function deleteTask(id){
+  const t = data.tasks.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Delete "${t.title}"?`)) return;
+  data.tasks = data.tasks.filter(x=>x.id!==id);
+  save();
+  renderTasksView();
+}
+function editTask(id){
+  const t = data.tasks.find(x=>x.id===id);
+  if(!t) return;
+  const newTitle = prompt('Edit task', t.title);
+  if(newTitle===null) return;
+  if(newTitle.trim()) t.title = newTitle.trim();
+  const newMvp = prompt('First step (optional)', t.mvp||'');
+  if(newMvp!==null) t.mvp = newMvp.trim();
+  save();
+  renderTasksView();
 }
 
-function openLibrary(){ renderLibrary(); el('librarySheetOverlay').classList.add('show'); }
-function closeLibrarySheet(){ el('librarySheetOverlay').classList.remove('show'); }
-el('libraryBtn').onclick = openLibrary;
-el('addTabBtn').onclick = openLibrary;
-el('librarySheetOverlay').addEventListener('click', (e) => {
-  if(e.target.id === 'librarySheetOverlay') closeLibrarySheet();
+/* ===================== WEEK VIEW ===================== */
+function renderWeekView(){
+  const wrap = el('weekWrap');
+  const todayIdx = todayDayIndex();
+  wrap.innerHTML = DAY_NAMES.map((name, idx) => {
+    const themeId = data.weekThemes[idx];
+    const dayTasks = data.tasks.filter(t => t.day===idx && !t.done);
+    return `
+    <div class="day-card${idx===todayIdx?' today':''}" data-day="${idx}">
+      <div class="day-head">
+        <span class="dname">${name}</span>
+        ${idx===todayIdx?'<span class="today-badge">TODAY</span>':''}
+        <select data-action="theme">
+          <option value="">No theme</option>
+          ${data.categories.map(c => `<option value="${c.id}" ${c.id===themeId?'selected':''}>${escapeHtml(c.name)} theme</option>`).join('')}
+        </select>
+      </div>
+      <div class="day-tasks">
+        ${dayTasks.length ? dayTasks.map(t => {
+          const cat = catById(t.categoryId);
+          return `<div class="day-task"><span class="cat-dot" style="background:${cat?cat.color:'#999'}"></span><span class="t">${escapeHtml(t.title)}</span><button data-action="unschedule" data-id="${t.id}">✕</button></div>`;
+        }).join('') : '<div class="day-empty">Nothing scheduled.</div>'}
+      </div>
+      <button class="btn small" data-action="addtoday">+ Add task</button>
+    </div>`;
+  }).join('');
+}
+el('weekWrap').addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-action="theme"]');
+  if(!sel) return;
+  const day = +sel.closest('.day-card').dataset.day;
+  data.weekThemes[day] = sel.value || null;
+  save();
 });
-
-/* ---- Code editor overlay (also handles rename / export / delete) ---- */
-function openCodeEditor(id){
-  const f = files.find(x=>x.id===id);
-  if(!f) return;
-  codeEditingId = id;
-  el('codeFname').textContent = f.name;
-  el('codeTag').textContent = f.type;
-  el('codeTag').className = 'fc-tag ' + f.type;
-  el('codeArea').value = f.code;
-  el('codeOverlay').classList.add('show');
+let scheduleTargetDay = null;
+el('weekWrap').addEventListener('click', (e) => {
+  const un = e.target.closest('[data-action="unschedule"]');
+  if(un){
+    const t = data.tasks.find(x=>x.id===un.dataset.id);
+    if(t){ t.day = null; save(); renderWeekView(); }
+    return;
+  }
+  const add = e.target.closest('[data-action="addtoday"]');
+  if(add){
+    scheduleTargetDay = +add.closest('.day-card').dataset.day;
+    openScheduleModal();
+  }
+});
+function openScheduleModal(){
+  const wrap = el('scheduleTaskList');
+  const items = incompleteTasks().filter(t => t.day !== scheduleTargetDay);
+  if(!items.length){
+    wrap.innerHTML = '<p class="empty-hint">No unscheduled tasks left — add more in the Tasks tab.</p>';
+  } else {
+    wrap.innerHTML = items.map(t => {
+      const cat = catById(t.categoryId);
+      return `<div class="task-row" data-id="${t.id}" style="cursor:pointer;">
+        <div class="task-body">
+          <div class="task-title">${escapeHtml(t.title)}</div>
+          <div class="task-meta"><span class="meta-pill" style="background:${cat?cat.color:'#999'};color:#fff;">${cat?escapeHtml(cat.name):''}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  el('scheduleModal').classList.add('show');
 }
-async function saveCodeEdits(){
-  if(!codeEditingId) return;
-  const f = files.find(x=>x.id===codeEditingId);
-  if(!f) return;
-  const newCode = el('codeArea').value;
-  if(newCode !== f.code){
-    f.code = newCode;
-    f.updatedAt = Date.now();
-    await dbPut(f);
-    const frame = document.querySelector(`iframe[data-frame="${f.id}"]`);
-    if(frame) frame.srcdoc = docFor(f);
-  }
+el('scheduleTaskList').addEventListener('click', (e) => {
+  const row = e.target.closest('.task-row');
+  if(!row) return;
+  const t = data.tasks.find(x=>x.id===row.dataset.id);
+  if(t){ t.day = scheduleTargetDay; save(); }
+  el('scheduleModal').classList.remove('show');
+  renderWeekView();
+});
+el('scheduleCloseBtn').onclick = () => el('scheduleModal').classList.remove('show');
+el('scheduleModal').addEventListener('click', (e) => { if(e.target.id==='scheduleModal') el('scheduleModal').classList.remove('show'); });
+
+/* ===================== SETTINGS / CATEGORIES ===================== */
+const SWATCHES = ['#5B8DB8','#D9A441','#C97B84','#7C9885','#8B7FC9','#4EA3A0','#C67A4E','#6B8E6E'];
+el('settingsBtn').onclick = () => { renderCatEditor(); el('settingsModal').classList.add('show'); };
+el('settingsCloseBtn').onclick = () => el('settingsModal').classList.remove('show');
+el('settingsModal').addEventListener('click', (e) => { if(e.target.id==='settingsModal') el('settingsModal').classList.remove('show'); });
+
+function renderCatEditor(){
+  el('catEditList').innerHTML = data.categories.map(c => `
+    <div class="cat-edit-row" data-id="${c.id}">
+      <div class="rename-row">
+        <input type="text" value="${escapeHtml(c.name)}" data-action="rename">
+        <button class="btn small danger" data-action="delcat">✕</button>
+      </div>
+      <div class="swatch-row">
+        ${SWATCHES.map(sw => `<span class="swatch${sw.toLowerCase()===c.color.toLowerCase()?' sel':''}" style="background:${sw}" data-action="color" data-color="${sw}"></span>`).join('')}
+      </div>
+    </div>`).join('');
 }
-el('codeBackBtn').onclick = async () => {
-  await saveCodeEdits();
-  el('codeOverlay').classList.remove('show');
-  codeEditingId = null;
-};
-el('codeRenameBtn').onclick = async () => {
-  const f = files.find(x=>x.id===codeEditingId);
-  if(!f) return;
-  const newName = prompt('Rename file', f.name);
-  if(newName && newName.trim()){
-    f.name = newName.trim();
-    f.updatedAt = Date.now();
-    await dbPut(f);
-    el('codeFname').textContent = f.name;
-    renderCarousel();
+el('catEditList').addEventListener('click', (e) => {
+  const row = e.target.closest('.cat-edit-row');
+  if(!row) return;
+  const cat = catById(row.dataset.id);
+  if(!cat) return;
+  const swEl = e.target.closest('[data-action="color"]');
+  if(swEl){ cat.color = swEl.dataset.color; save(); renderCatEditor(); renderTasksView(); renderWeekView(); return; }
+  if(e.target.closest('[data-action="delcat"]')){
+    if(data.categories.length <= 1){ alert('Keep at least one category.'); return; }
+    if(data.tasks.some(t=>t.categoryId===cat.id)){ alert('Move or delete that category\'s tasks first.'); return; }
+    if(!confirm(`Delete category "${cat.name}"?`)) return;
+    data.categories = data.categories.filter(c=>c.id!==cat.id);
+    save(); renderCatEditor(); renderTasksView(); renderWeekView();
   }
+});
+el('catEditList').addEventListener('change', (e) => {
+  const input = e.target.closest('[data-action="rename"]');
+  if(!input) return;
+  const row = e.target.closest('.cat-edit-row');
+  const cat = catById(row.dataset.id);
+  if(cat && input.value.trim()){ cat.name = input.value.trim(); save(); renderTasksView(); renderWeekView(); }
+});
+el('addCatBtn').onclick = () => {
+  const name = prompt('Category name');
+  if(!name || !name.trim()) return;
+  const color = SWATCHES[data.categories.length % SWATCHES.length];
+  data.categories.push({ id: uid(), name: name.trim(), color });
+  save();
+  renderCatEditor();
 };
-el('codeExportBtn').onclick = () => {
-  const f = files.find(x=>x.id===codeEditingId);
-  if(!f) return;
-  const ext = f.type === 'html' ? 'html' : 'jsx';
-  const blob = new Blob([el('codeArea').value], {type: 'text/plain'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = f.name.endsWith('.'+ext) ? f.name : `${f.name}.${ext}`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-};
-el('codeDeleteBtn').onclick = async () => {
-  const f = files.find(x=>x.id===codeEditingId);
-  if(!f) return;
-  if(!confirm(`Delete "${f.name}"? This can't be undone.`)) return;
-  await dbDelete(f.id);
-  files = files.filter(x=>x.id!==f.id);
-  codeEditingId = null;
-  el('codeOverlay').classList.remove('show');
-  renderCarousel();
+el('resetDataBtn').onclick = () => {
+  if(!confirm('This erases every task and category. Are you sure?')) return;
+  data = defaultData();
+  save();
+  el('settingsModal').classList.remove('show');
+  renderTodayView(); renderTasksView(); renderWeekView();
 };
 
-/* ---- New file / import (both open the result as a tab immediately) ---- */
-const overlay = el('overlay');
-el('newFromSheetBtn').onclick = () => openNewFileModal();
-el('mCancel').onclick = closeModal;
-el('mType').onchange = () => {
-  el('mHint').textContent = el('mType').value === 'jsx' ? JSX_HINT : HTML_HINT;
-};
-function openNewFileModal(){
-  el('modalTitle').textContent = 'New file';
-  el('mName').value = '';
-  el('mType').value = 'html';
-  el('mCode').value = '';
-  el('mHint').textContent = HTML_HINT;
-  overlay.classList.add('show');
-  el('mName').focus();
-}
-function closeModal(){ overlay.classList.remove('show'); }
-overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
-
-el('mSave').onclick = async () => {
-  const name = el('mName').value.trim();
-  const type = el('mType').value;
-  const code = el('mCode').value;
-  if(!name){ el('mName').focus(); return; }
-  if(!code.trim()){ el('mCode').focus(); return; }
-  const now = Date.now();
-  const maxIdx = Math.max(-1, ...files.filter(x=>x.open).map(x => x.tabIndex ?? 0));
-  const newFile = { id: uid(), name, type, code, createdAt: now, updatedAt: now, open: true, tabIndex: maxIdx+1 };
-  files.push(newFile);
-  await dbPut(newFile);
-  closeModal();
-  closeLibrarySheet();
-  renderCarousel();
-  requestAnimationFrame(() => {
-    const card = el('carousel').querySelector(`.tab-card[data-id="${newFile.id}"]`);
-    if(card) card.scrollIntoView({ inline:'center', block:'nearest' });
-  });
-};
-
-el('importFromSheetBtn').onclick = () => el('importInput').click();
-el('importInput').onchange = async (e) => {
-  const fileObjs = Array.from(e.target.files || []);
-  let maxIdx = Math.max(-1, ...files.filter(x=>x.open).map(x => x.tabIndex ?? 0));
-  let lastId = null;
-  for(const fo of fileObjs){
-    const text = await fo.text();
-    const ext = fo.name.split('.').pop().toLowerCase();
-    const type = (ext === 'jsx' || ext === 'tsx' || ext === 'js') ? 'jsx' : 'html';
-    const name = fo.name.replace(/\.(html|htm|jsx|tsx|js)$/i, '');
-    const now = Date.now();
-    maxIdx += 1;
-    const newFile = { id: uid(), name, type, code: text, createdAt: now, updatedAt: now, open: true, tabIndex: maxIdx };
-    files.push(newFile);
-    await dbPut(newFile);
-    lastId = newFile.id;
-  }
-  closeLibrarySheet();
-  renderCarousel();
-  if(lastId){
-    requestAnimationFrame(() => {
-      const card = el('carousel').querySelector(`.tab-card[data-id="${lastId}"]`);
-      if(card) card.scrollIntoView({ inline:'center', block:'nearest' });
-    });
-  }
-  e.target.value = '';
-};
+/* ===================== Init ===================== */
+renderHeader();
+renderTodayView();
 </script>
 </body>
 </html>
