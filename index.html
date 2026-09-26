@@ -373,6 +373,34 @@ window.addEventListener('message', async (e) => {
   }
 });
 
+/* File bridge: sandboxed previews can't download or open the share sheet.
+   A tool posts { __benchFile, id, name, mime, prefer, data:ArrayBuffer } and
+   The Bench saves it from the top-level page, then replies with the result. */
+window.addEventListener('message', async (e) => {
+  const d = e.data;
+  if(!d || !d.__benchFile || !e.source) return;
+  const reply = (ok, how, error) => e.source.postMessage({ __benchFileResponse: true, id: d.id, ok, how, error }, '*');
+  try{
+    const blob = new Blob([d.data], { type: d.mime || 'application/octet-stream' });
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if(d.prefer !== 'download' && isMobile && navigator.canShare){
+      const file = new File([blob], d.name, { type: blob.type });
+      if(navigator.canShare({ files: [file] })){
+        try{ await navigator.share({ files: [file], title: d.name }); return reply(true, 'share'); }
+        catch(err){ if(err && err.name === 'AbortError') return reply(true, 'cancelled'); }
+      }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = d.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    reply(true, 'download');
+  }catch(err){
+    reply(false, null, (err && err.message) || String(err));
+  }
+});
+
 async function handleStorageOp(op, { key, value, shared, prefix }){
   const tag = shared ? 'shared:' : 'priv:';
   const storeId = tag + key;
@@ -695,7 +723,16 @@ ${cleaned}
 </body></html>`;
 }
 function docFor(f){
-  return f.type === 'html' ? (STORAGE_SHIM + f.code) : buildJsxDoc(f.code);
+  if(f.type !== 'html') return buildJsxDoc(f.code);
+  /* Put the shim inside <head> so a file's <!doctype> stays first and the
+     page renders in standards mode instead of quirks mode. */
+  const code = f.code;
+  const m = code.match(/<head[^>]*>/i);
+  if(m){
+    const at = m.index + m[0].length;
+    return code.slice(0, at) + STORAGE_SHIM + code.slice(at);
+  }
+  return STORAGE_SHIM + code;
 }
 
 /* ===================== File store + open tabs ===================== */
